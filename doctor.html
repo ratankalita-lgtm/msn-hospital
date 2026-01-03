@@ -121,6 +121,24 @@
     </section>
 </div>
 
+<datalist id="med-list">
+    <option value="Moxifloxacin Eye Drop">
+    <option value="Prednisolone Acetate">
+    <option value="Carboxymethylcellulose (CMC)">
+    <option value="Timolol Maleate">
+    <option value="Nepafenac Eye Drop">
+    <option value="Tropicamide + Phenylephrine">
+    <option value="Atropine Ointment">
+    <option value="Ciprofloxacin">
+    <option value="Multivitamin Tablet">
+    <option value="Paracetamol 500mg">
+    <option value="Olopatadine Eye Drop">
+    <option value="Brimonidine Tartrate">
+    <option value="Dorzolamide">
+    <option value="Latanoprost">
+    <option value="Sodium Hyaluronate">
+</datalist>
+
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, doc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -225,7 +243,7 @@
         });
     }
 
-    // --- START CONSULT (FIXED MISSING FIELDS) ---
+    // --- START CONSULT ---
     window.startConsult = function(opdId) {
         currentVisit = db_visits.find(v => v.opdId === opdId);
         if(!currentVisit) return;
@@ -238,7 +256,6 @@
         const d = currentVisit.optoData || {};
         const safe = (obj, path) => path.split('.').reduce((acc, part) => acc && acc[part], obj) || '-';
 
-        // INJECT ALL OPTO DATA HERE
         document.getElementById('opto-content').innerHTML = `
             <div class="opto-section">
                 <h5>Clinical History</h5>
@@ -306,7 +323,8 @@
     window.addMedRow = function() {
         const tbody = document.querySelector('#med-table tbody');
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td><input class="med-name" placeholder="Medicine"></td><td><input class="med-dose" placeholder="Dose"></td><td><select class="med-freq"><option>1-0-1</option><option>1-1-1</option><option>1-0-0</option><option>0-0-1</option><option>SOS</option></select></td><td><input class="med-dur" placeholder="Days"></td><td><button type="button" onclick="this.closest('tr').remove()" style="color:red;border:none;background:none;">X</button></td>`;
+        // UPDATED: Added list="med-list"
+        tr.innerHTML = `<td><input class="med-name" list="med-list" placeholder="Start typing..."></td><td><input class="med-dose" placeholder="Dose"></td><td><select class="med-freq"><option>1-0-1</option><option>1-1-1</option><option>1-0-0</option><option>0-0-1</option><option>SOS</option></select></td><td><input class="med-dur" placeholder="Days"></td><td><button type="button" onclick="this.closest('tr').remove()" style="color:red;border:none;background:none;">X</button></td>`;
         tbody.appendChild(tr);
     };
 
@@ -332,7 +350,6 @@
         if(!currentVisit) return;
         const dr = doctorProfiles[loggedInDoctor] || { qual: "", reg: "", desig: "" };
         
-        // GATHER DATA FOR PRINT
         const diag = document.getElementById('diagnosis').value || '-';
         const adv = document.getElementById('advice').value || '-';
         const showDiag = document.getElementById('chk_diagnosis').checked;

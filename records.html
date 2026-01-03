@@ -6,7 +6,6 @@
     <title>Medical Records - MSN Hospital</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* Specific Styles for Records Viewer */
         .search-container { max-width: 600px; margin: 0 auto 20px auto; display: flex; gap: 10px; }
         .patient-result { background: white; padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; transition: 0.2s; }
         .patient-result:hover { background: #f1f8ff; }
@@ -21,10 +20,11 @@
         .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 10px; }
         .section-title { font-weight: bold; color: #007bff; border-bottom: 2px solid #eee; padding-bottom: 5px; margin-bottom: 10px; font-size: 0.9em; text-transform: uppercase; }
         .field-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.95em; border-bottom: 1px dashed #f0f0f0; padding-bottom: 2px; }
+        .sl-grid { display: grid; grid-template-columns: 80px 1fr 1fr; gap: 5px; font-size: 0.85em; background:#fff; padding:5px; border-radius:4px; }
+        .sl-grid div { border-bottom: 1px solid #eee; padding: 2px; }
         
         .badge { font-size: 0.8em; padding: 3px 8px; border-radius: 10px; color: white; }
         .badge.doc { background-color: #17a2b8; }
-        .badge.opto { background-color: #fd7e14; }
     </style>
 </head>
 <body>
@@ -36,7 +36,10 @@
             <h2>Medical Records Archive</h2>
             <p class="text-muted">Search Patient History & Previous Findings</p>
         </div>
-        <a href="index.html" class="btn ghost small" style="margin-left:auto; text-decoration:none;">Back to Home</a>
+        <div style="margin-left:auto; display:flex; gap:10px;">
+            <button class="btn info small" onclick="exportToCSV()">Download Excel/CSV</button>
+            <a href="index.html" class="btn ghost small" style="text-decoration:none;">Back to Home</a>
+        </div>
     </header>
 
     <div class="search-container">
@@ -56,12 +59,11 @@
         </div>
         <div id="timeline-feed" class="timeline"></div>
     </div>
-
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyBne_-4FcG5DjtUDVwdd1K-XDsHjX0JOEo",
@@ -75,26 +77,37 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-
     let allPatients = [];
 
-    // Pre-load patients for fast search
     window.onload = async function() {
         const q = query(collection(db, "patients"));
         const snap = await getDocs(q);
         allPatients = snap.docs.map(doc => doc.data());
     };
 
+    // EXPORT FUNCTION ADDED HERE
+    window.exportToCSV = function() {
+        if(allPatients.length === 0) { alert("No data to export. Wait for page to load."); return; }
+        
+        let csvContent = "data:text/csv;charset=utf-8,";
+        csvContent += "Patient ID,Name,Age,Gender,Phone,District,Address,Last Visit\n";
+        
+        allPatients.forEach(p => {
+            csvContent += `${p.id},${p.name},${p.age},${p.gender},${p.phone},${p.district},${p.address},${p.lastVisit || '-'}\n`;
+        });
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "msn_hospital_patients_backup.csv");
+        document.body.appendChild(link);
+        link.click();
+    };
+
     window.searchPatient = function() {
         const term = document.getElementById('search_input').value.trim().toLowerCase();
         if(!term) return;
-
-        const results = allPatients.filter(p => 
-            p.name.toLowerCase().includes(term) || 
-            p.phone.includes(term) || 
-            p.id.toLowerCase().includes(term)
-        );
-
+        const results = allPatients.filter(p => p.name.toLowerCase().includes(term) || p.phone.includes(term) || p.id.toLowerCase().includes(term));
         const list = document.getElementById('patient-list');
         list.innerHTML = '';
         
@@ -116,23 +129,18 @@
     window.loadVisits = async function(patient) {
         document.getElementById('results-area').classList.add('hidden');
         document.getElementById('timeline-area').classList.remove('hidden');
-        
         document.getElementById('t-name').innerText = patient.name;
         document.getElementById('t-info').innerText = `PID: ${patient.id} | ${patient.address || ''}`;
         
         const feed = document.getElementById('timeline-feed');
         feed.innerHTML = '<div style="padding:20px;">Loading History...</div>';
 
-        // Query Visits
         const q = query(collection(db, "visits"), where("pid", "==", patient.id));
         const snap = await getDocs(q);
         const visits = snap.docs.map(doc => doc.data()).sort((a,b) => b.timestamp - a.timestamp);
 
         feed.innerHTML = '';
-        if(visits.length === 0) {
-            feed.innerHTML = '<p>No previous visits found.</p>';
-            return;
-        }
+        if(visits.length === 0) { feed.innerHTML = '<p>No previous visits found.</p>'; return; }
 
         visits.forEach(v => {
             const date = v.date || v.isoDate;
@@ -140,49 +148,49 @@
             const o = v.optoData || {};
             const safe = (obj, path) => path.split('.').reduce((acc, part) => acc && acc[part], obj) || '-';
 
-            const html = `
+            feed.innerHTML += `
             <div class="visit-card">
                 <div class="visit-header" onclick="this.nextElementSibling.classList.toggle('open')">
-                    <div>
-                        <strong>${date}</strong> <span class="badge doc">${v.type}</span>
-                        <div style="font-size:0.85em; color:#555;">${v.opdId} | Doc: ${v.doctor}</div>
-                    </div>
+                    <div><strong>${date}</strong> <span class="badge doc">${v.type}</span> <span style="font-size:0.85em; color:#555;">| ${v.opdId} | ${v.doctor}</span></div>
                     <div style="font-size:1.2em;">Details ▼</div>
                 </div>
                 <div class="visit-body">
-                    
                     <div class="data-grid">
+                        
                         <div style="background:#f4f9ff; padding:10px; border-radius:5px;">
                             <div class="section-title">🩺 Doctor's Notes</div>
                             <div><strong>Diagnosis:</strong> ${d.diagnosis || '-'}</div>
                             <div style="margin-top:5px;"><strong>Advice:</strong> <pre style="white-space:pre-wrap; font-family:inherit; margin:0;">${d.advice || '-'}</pre></div>
-                            
                             <div style="margin-top:10px; font-weight:bold; font-size:0.9em;">Rx (Medicines):</div>
                             ${(d.meds || []).map(m => `<div style="padding-left:10px; border-left:2px solid #ccc; margin-top:2px;">${m.name} - ${m.dose} (${m.freq})</div>`).join('') || 'None'}
                         </div>
 
                         <div style="background:#fff9e6; padding:10px; border-radius:5px;">
                             <div class="section-title">👁️ Optometry Data</div>
-                            <div class="field-row"><span>CO:</span> <span>${safe(o, 'history.complaint')}</span></div>
-                            <div class="field-row"><span>Vision (Unaided):</span> <span>OD: ${safe(o, 'va.od.dist')} | OS: ${safe(o, 'va.os.dist')}</span></div>
                             
-                            <div style="margin-top:5px; font-weight:bold; color:#d63384;">Refraction:</div>
-                            <div class="field-row"><span>OD:</span> <span>${safe(o, 'refraction.od.sph')} / ${safe(o, 'refraction.od.cyl')} x ${safe(o, 'refraction.od.ax')}</span></div>
-                            <div class="field-row"><span>OS:</span> <span>${safe(o, 'refraction.os.sph')} / ${safe(o, 'refraction.os.cyl')} x ${safe(o, 'refraction.os.ax')}</span></div>
+                            <div class="field-row"><span>Vision:</span> <span>OD: ${safe(o, 'va.od.dist')} | OS: ${safe(o, 'va.os.dist')}</span></div>
+                            <div class="field-row"><span>Refraction:</span> <span>OD: ${safe(o, 'refraction.od.sph')}/${safe(o, 'refraction.od.cyl')}</span></div>
+                            <div class="field-row"><span></span> <span>OS: ${safe(o, 'refraction.os.sph')}/${safe(o, 'refraction.os.cyl')}</span></div>
                             
-                            <div style="margin-top:5px; font-weight:bold;">Slit Lamp:</div>
-                            <div class="field-row"><span>IOP:</span> <span>${safe(o, 'slitlamp.iop_od')} / ${safe(o, 'slitlamp.iop_os')}</span></div>
-                            <div class="field-row"><span>Lens:</span> <span>${safe(o, 'slitlamp.lens_od')} / ${safe(o, 'slitlamp.lens_os')}</span></div>
-                            <div style="font-size:0.9em; color:#555; margin-top:3px;"><em>Note: ${safe(o, 'slitlamp.remarks')}</em></div>
-                        </div>
-                    </div>
+                            <div style="margin-top:5px; font-weight:bold; font-size:0.9em; margin-bottom:5px;">External Exam:</div>
+                            <div class="field-row"><span>Ext:</span> <span>${safe(o, 'external.od.ext')} | ${safe(o, 'external.os.ext')}</span></div>
+                            <div class="field-row"><span>Cover (N):</span> <span>${safe(o, 'external.od.ct_near')} | ${safe(o, 'external.os.ct_near')}</span></div>
 
+                            <div style="margin-top:5px; font-weight:bold; font-size:0.9em; margin-bottom:5px;">Slit Lamp:</div>
+                            <div class="sl-grid">
+                                <div>Str.</div><div>OD</div><div>OS</div>
+                                <div>Lids</div><div>${safe(o, 'slitlamp.od.lids')}</div><div>${safe(o, 'slitlamp.os.lids')}</div>
+                                <div>Corn</div><div>${safe(o, 'slitlamp.od.corn')}</div><div>${safe(o, 'slitlamp.os.corn')}</div>
+                                <div>Lens</div><div>${safe(o, 'slitlamp.lens_od')}</div><div>${safe(o, 'slitlamp.lens_os')}</div>
+                            </div>
+                            <div class="field-row" style="margin-top:5px;"><span>IOP:</span> <span>${safe(o, 'slitlamp.iop_od')} / ${safe(o, 'slitlamp.iop_os')}</span></div>
+                        </div>
+
+                    </div>
                 </div>
             </div>`;
-            feed.insertAdjacentHTML('beforeend', html);
         });
     };
 </script>
-
 </body>
 </html>
