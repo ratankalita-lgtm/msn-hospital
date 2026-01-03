@@ -13,6 +13,7 @@
         .opto-grid.pgp { grid-template-columns: 100px 1fr 1fr 1fr 1fr; }
         .opto-grid.refraction { grid-template-columns: 100px 1fr 1fr 1fr 1fr 1fr; }
         .status-waiting { color: #856404; background-color: #fff3cd; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+        .status-investigation { color: #fff; background-color: #fd7e14; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; font-weight:bold; }
         .added-item { display: inline-block; background: #e9ecef; padding: 4px 8px; margin: 4px 4px 4px 0; border-radius: 15px; font-size: 0.9em; border: 1px solid #ced4da; }
         .remove-x { color: red; margin-left: 6px; cursor: pointer; font-weight: bold; }
     </style>
@@ -37,6 +38,16 @@
         <div style="background:#e3f2fd; padding:15px; margin-bottom:20px; border-radius:6px; border-left: 5px solid #007bff; display:flex; justify-content:space-between; align-items:center;">
             <div><h3 id="p-header" style="margin:0; color:#007bff">Patient Name</h3><p id="p-details" style="margin:5px 0 0 0; color:#555;">PID: - </p></div>
             <button class="btn ghost small" onclick="closeWorkup()">Back to Queue</button>
+        </div>
+
+        <div id="investigation-panel" class="hidden" style="border: 2px solid #fd7e14; padding: 15px; border-radius: 6px; margin-bottom: 20px; background: #fff5eb;">
+            <h4 style="margin:0 0 10px 0; color:#fd7e14;">⚠️ Investigation Requested by Doctor</h4>
+            <div style="background:white; padding:10px; border:1px dashed #ccc; margin-bottom:10px;">
+                <strong>Request:</strong> <span id="inv-request-text" style="font-size:1.1em;">-</span>
+            </div>
+            <label><strong>Enter Results / Report Text:</strong></label>
+            <textarea id="inv-report-input" rows="3" placeholder="Type findings here (e.g. IOP: 18/19, OCT shows...)" style="width:100%; border:1px solid #fd7e14;"></textarea>
+            <button type="button" class="btn" style="margin-top:10px; background-color:#28a745;" onclick="saveInvestigationReport()">✅ Save & Send Report to Doctor</button>
         </div>
 
         <form id="optoForm">
@@ -138,7 +149,8 @@
         tbody.innerHTML = '';
         const queue = allVisits.filter(v => {
             const isToday = (v.isoDate && v.isoDate === todayIso) || (v.date === new Date().toLocaleDateString());
-            return isToday && v.status === 'Waiting';
+            // Show waiting AND investigation patients
+            return isToday && (v.status === 'Waiting' || v.status === 'Investigation');
         });
         if (queue.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px;">No patients waiting.</td></tr>'; return; }
 
@@ -146,7 +158,11 @@
             const patientData = allPatients.find(p => p.id === v.pid);
             const address = patientData ? patientData.address : '-';
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td><strong>${v.opdId}</strong></td><td>${v.pid}</td><td>${v.patientName}</td><td>${address}</td><td>${v.age}Y/${v.gender}</td><td><span class="status-waiting">${v.status}</span></td><td><button class="btn small" onclick="window.loadPatient('${v.firebaseId}')">Workup</button></td>`;
+            
+            let statusBadge = `<span class="status-waiting">${v.status}</span>`;
+            if(v.status === 'Investigation') statusBadge = `<span class="status-investigation">Investigation</span>`;
+
+            tr.innerHTML = `<td><strong>${v.opdId}</strong></td><td>${v.pid}</td><td>${v.patientName}</td><td>${address}</td><td>${v.age}Y/${v.gender}</td><td>${statusBadge}</td><td><button class="btn small" onclick="window.loadPatient('${v.firebaseId}')">Workup</button></td>`;
             tbody.appendChild(tr);
         });
     }
@@ -160,6 +176,47 @@
         document.getElementById('p-details').innerText = `PID: ${currentVisit.pid}`;
         document.getElementById('optoForm').reset();
         systemicDiseasesList = [];
+        
+        // --- PREFILL EXISTING DATA IF ANY ---
+        const d = currentVisit.optoData;
+        if(d) {
+            // Basic Prefill for inputs
+            const setVal = (id, val) => { if(document.getElementById(id)) document.getElementById(id).value = val || ''; }
+            
+            setVal('chief_complaint', d.history?.complaint);
+            setVal('ocular_history', d.history?.ocular_hx);
+            setVal('allergies', d.history?.allergies);
+            
+            setVal('pgp_sph_od', d.pgp?.od?.sph); setVal('pgp_cyl_od', d.pgp?.od?.cyl); setVal('pgp_ax_od', d.pgp?.od?.ax); setVal('pgp_add_od', d.pgp?.od?.add);
+            setVal('pgp_sph_os', d.pgp?.os?.sph); setVal('pgp_cyl_os', d.pgp?.os?.cyl); setVal('pgp_ax_os', d.pgp?.os?.ax); setVal('pgp_add_os', d.pgp?.os?.add);
+
+            setVal('va_od_dist', d.va?.od?.dist); setVal('va_od_rx', d.va?.od?.rx); setVal('va_od_ph', d.va?.od?.ph); setVal('va_od_near', d.va?.od?.near);
+            setVal('va_os_dist', d.va?.os?.dist); setVal('va_os_rx', d.va?.os?.rx); setVal('va_os_ph', d.va?.os?.ph); setVal('va_os_near', d.va?.os?.near);
+
+            setVal('rx_sph_od', d.refraction?.od?.sph); setVal('rx_cyl_od', d.refraction?.od?.cyl); setVal('rx_ax_od', d.refraction?.od?.ax); setVal('rx_add_od', d.refraction?.od?.add); setVal('rx_va_od', d.refraction?.od?.va);
+            setVal('rx_sph_os', d.refraction?.os?.sph); setVal('rx_cyl_os', d.refraction?.os?.cyl); setVal('rx_ax_os', d.refraction?.os?.ax); setVal('rx_add_os', d.refraction?.os?.add); setVal('rx_va_os', d.refraction?.os?.va);
+
+            setVal('ext_od', d.external?.od?.ext); setVal('eom_od', d.external?.od?.eom); setVal('ct_dist_od', d.external?.od?.ct_dist); setVal('ct_near_od', d.external?.od?.ct_near);
+            setVal('ext_os', d.external?.os?.ext); setVal('eom_os', d.external?.os?.eom); setVal('ct_dist_os', d.external?.os?.ct_dist); setVal('ct_near_os', d.external?.os?.ct_near);
+
+            setVal('sl_lids_od', d.slitlamp?.od?.lids); setVal('sl_conj_od', d.slitlamp?.od?.conj); setVal('sl_corn_od', d.slitlamp?.od?.corn); setVal('sl_ac_od', d.slitlamp?.od?.ac); setVal('sl_pupil_od', d.slitlamp?.od?.pupil);
+            setVal('sl_lids_os', d.slitlamp?.os?.lids); setVal('sl_conj_os', d.slitlamp?.os?.conj); setVal('sl_corn_os', d.slitlamp?.os?.corn); setVal('sl_ac_os', d.slitlamp?.os?.ac); setVal('sl_pupil_os', d.slitlamp?.os?.pupil);
+            setVal('sl_lens_od', d.slitlamp?.lens_od); setVal('sl_lens_os', d.slitlamp?.lens_os);
+            setVal('sl_iop_od', d.slitlamp?.iop_od); setVal('sl_iop_os', d.slitlamp?.iop_os);
+            setVal('sl_remarks', d.slitlamp?.remarks);
+            setVal('dilation_instruct', d.plan?.dilation);
+        }
+
+        // --- CHECK IF INVESTIGATION REQUESTED ---
+        const panel = document.getElementById('investigation-panel');
+        if(currentVisit.status === 'Investigation') {
+            panel.classList.remove('hidden');
+            document.getElementById('inv-request-text').innerText = currentVisit.investigationRequest || "No notes.";
+            document.getElementById('inv-report-input').value = currentVisit.investigationReport || "";
+        } else {
+            panel.classList.add('hidden');
+        }
+
         renderSysList();
     };
 
@@ -186,9 +243,13 @@
 
     function v(id) { return document.getElementById(id) ? document.getElementById(id).value : ""; }
 
+    // --- SAVE LOGIC ---
     window.saveWorkup = async function() {
         if(!currentVisit) return;
         
+        // Prevent saving normal workup if this is an Investigation Request (use the green button instead)
+        if(currentVisit.status === 'Investigation' && !confirm("This patient is marked for Investigation. Do you want to save Standard Workup data instead?")) return;
+
         let systemicString = systemicDiseasesList.map(x => `${x.name} (${x.dur})`).join(', ');
 
         const optoData = {
@@ -239,6 +300,21 @@
         } finally {
             document.querySelector('.btn').innerText = "Save & Send to Doctor";
         }
+    };
+
+    // --- SAVE INVESTIGATION REPORT ---
+    window.saveInvestigationReport = async function() {
+        const report = document.getElementById('inv-report-input').value;
+        if(!report) { alert("Please type the investigation results first."); return; }
+
+        try {
+            await updateDoc(doc(db, "visits", currentVisit.firebaseId), {
+                investigationReport: report,
+                status: "Report Ready" // Sends back to doctor with this status
+            });
+            alert("Report Sent to Doctor!");
+            closeWorkup();
+        } catch(e) { alert(e.message); }
     };
 
     window.printRx = function() {
