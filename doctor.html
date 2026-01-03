@@ -14,10 +14,13 @@
         select { padding: 8px; border-radius: 4px; border:1px solid #ccc;}
         .med-row input { margin-bottom: 5px; }
         
-        /* Specific Styles for Editable Opto Data */
+        /* Styles for Opto Data Display */
+        .opto-readonly-box { background: #f8f9fa; padding: 10px; border-radius: 4px; margin-bottom: 15px; border: 1px dashed #ccc; font-size: 0.9em; }
+        .opto-readonly-row { display: flex; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px solid #eee; }
+        
         .opto-edit-grid { display: grid; grid-template-columns: 80px 1fr 1fr; gap: 5px; margin-bottom: 5px; align-items: center; }
         .opto-edit-grid.header { font-weight: bold; background: #eee; padding: 5px; border-radius: 4px; }
-        .small-input { padding: 4px; font-size: 0.9em; border: 1px solid #bbb; }
+        .small-input { padding: 4px; font-size: 0.9em; border: 1px solid #bbb; width: 100%; box-sizing: border-box; }
         
         .print-control { display: flex; align-items: center; gap: 5px; font-size: 0.9em; color: #555; }
         .template-bar { display: flex; gap: 5px; margin-bottom: 5px; }
@@ -26,7 +29,7 @@
         .status-investigation { background: #fff3cd; color: #856404; padding: 2px 5px; border-radius: 4px; font-size:0.8em; }
         .status-ready { background: #d4edda; color: #155724; padding: 2px 5px; border-radius: 4px; font-size:0.8em; }
 
-        details.opto-box { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; padding: 10px; margin-bottom: 15px; }
+        details.opto-box { background: #fff; border: 1px solid #dee2e6; border-radius: 4px; padding: 10px; margin-bottom: 15px; }
         details.opto-box summary { cursor: pointer; font-weight: bold; color: #007bff; margin-bottom: 10px; }
     </style>
 </head>
@@ -74,78 +77,71 @@
 
         <div id="investigation-result-box" class="hidden" style="background:#d4edda; color:#155724; padding:10px; border:1px solid #c3e6cb; border-radius:4px; margin-bottom:15px;">
             <strong>🧪 Investigation Report Available:</strong>
-            <p id="inv-report-text" style="margin:5px 0 0 0; white-space: pre-wrap;"></p>
+            <p id="inv-report-text" style="margin:5px 0 0 0; white-space: pre-wrap; font-weight:bold;"></p>
         </div>
         
         <details class="opto-box" id="opto-details" open>
-            <summary>👁️ Clinical Workup (Editable)</summary>
+            <summary>👁️ Optometrist Findings (Review & Edit)</summary>
             
+            <div class="opto-readonly-box">
+                <div style="font-weight:bold; color:#555; border-bottom:1px solid #ddd; margin-bottom:5px;">History & Background</div>
+                <div class="opto-readonly-row"><span><strong>Chief Complaint:</strong></span> <span id="disp_cc">-</span></div>
+                <div class="opto-readonly-row"><span><strong>Ocular Hx:</strong></span> <span id="disp_oh">-</span></div>
+                <div class="opto-readonly-row"><span><strong>Systemic / Allergy:</strong></span> <span id="disp_sys">-</span></div>
+                
+                <div style="margin-top:8px; font-weight:bold; color:#555; border-bottom:1px solid #ddd; margin-bottom:5px;">Previous Glasses (PGP)</div>
+                <div class="opto-readonly-row"><span id="disp_pgp_od">OD: -</span> <span id="disp_pgp_os">OS: -</span></div>
+
+                <div style="margin-top:8px; font-weight:bold; color:#555; border-bottom:1px solid #ddd; margin-bottom:5px;">External Exam</div>
+                <div class="opto-readonly-row"><span id="disp_ext_od">OD: -</span> <span id="disp_ext_os">OS: -</span></div>
+            </div>
+
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
                 <div>
-                    <h5 style="margin:0 0 5px 0; border-bottom:1px solid #ccc;">Vision (VA)</h5>
+                    <h5 style="margin:0 0 5px 0; border-bottom:1px solid #ccc; color:#007bff;">Visual Acuity & Refraction</h5>
                     <div class="opto-edit-grid header"><div>Test</div><div>OD</div><div>OS</div></div>
-                    <div class="opto-edit-grid">
-                        <div>Dist</div>
-                        <input id="ed_va_od" class="small-input" placeholder="OD Dist">
-                        <input id="ed_va_os" class="small-input" placeholder="OS Dist">
-                    </div>
-                    <div class="opto-edit-grid">
-                        <div>PH</div>
-                        <input id="ed_ph_od" class="small-input" placeholder="OD PH">
-                        <input id="ed_ph_os" class="small-input" placeholder="OS PH">
-                    </div>
+                    <div class="opto-edit-grid"><div>Dist</div><input id="ed_va_od" class="small-input"><input id="ed_va_os" class="small-input"></div>
+                    <div class="opto-edit-grid"><div>Near</div><input id="ed_va_near_od" class="small-input"><input id="ed_va_near_os" class="small-input"></div>
+                    <div class="opto-edit-grid"><div>PH</div><input id="ed_ph_od" class="small-input"><input id="ed_ph_os" class="small-input"></div>
 
-                    <h5 style="margin:10px 0 5px 0; border-bottom:1px solid #ccc;">Refraction</h5>
+                    <h5 style="margin:10px 0 5px 0; border-bottom:1px solid #ccc; color:#007bff;">Refraction</h5>
                     <div class="opto-edit-grid header" style="grid-template-columns: 40px 1fr 1fr 1fr;"><div>Eye</div><div>Sph</div><div>Cyl</div><div>Axis</div></div>
                     <div class="opto-edit-grid" style="grid-template-columns: 40px 1fr 1fr 1fr;">
-                        <div>OD</div>
-                        <input id="ed_rx_sph_od" class="small-input">
-                        <input id="ed_rx_cyl_od" class="small-input">
-                        <input id="ed_rx_ax_od" class="small-input">
+                        <div>OD</div><input id="ed_rx_sph_od" class="small-input"><input id="ed_rx_cyl_od" class="small-input"><input id="ed_rx_ax_od" class="small-input">
                     </div>
                     <div class="opto-edit-grid" style="grid-template-columns: 40px 1fr 1fr 1fr;">
-                        <div>OS</div>
-                        <input id="ed_rx_sph_os" class="small-input">
-                        <input id="ed_rx_cyl_os" class="small-input">
-                        <input id="ed_rx_ax_os" class="small-input">
+                        <div>OS</div><input id="ed_rx_sph_os" class="small-input"><input id="ed_rx_cyl_os" class="small-input"><input id="ed_rx_ax_os" class="small-input">
+                    </div>
+                    
+                    <div class="opto-edit-grid header" style="margin-top:5px; grid-template-columns: 40px 1fr 1fr;"><div></div><div>Add</div><div>Visual Acuity</div></div>
+                    <div class="opto-edit-grid" style="grid-template-columns: 40px 1fr 1fr;">
+                         <div>OD</div><input id="ed_rx_add_od" class="small-input"><input id="ed_rx_va_od" class="small-input" placeholder="VA">
                     </div>
                     <div class="opto-edit-grid" style="grid-template-columns: 40px 1fr 1fr;">
-                         <div>Add</div>
-                         <input id="ed_rx_add_od" class="small-input" placeholder="OD Add">
-                         <input id="ed_rx_add_os" class="small-input" placeholder="OS Add">
+                         <div>OS</div><input id="ed_rx_add_os" class="small-input"><input id="ed_rx_va_os" class="small-input" placeholder="VA">
                     </div>
                 </div>
 
                 <div>
-                    <h5 style="margin:0 0 5px 0; border-bottom:1px solid #ccc;">Slit Lamp & IOP</h5>
+                    <h5 style="margin:0 0 5px 0; border-bottom:1px solid #ccc; color:#007bff;">Slit Lamp Examination</h5>
                     <div class="opto-edit-grid header"><div>Part</div><div>OD</div><div>OS</div></div>
-                    <div class="opto-edit-grid">
-                        <div>Lids</div>
-                        <input id="ed_sl_lids_od" class="small-input">
-                        <input id="ed_sl_lids_os" class="small-input">
-                    </div>
-                    <div class="opto-edit-grid">
-                        <div>Cornea</div>
-                        <input id="ed_sl_corn_od" class="small-input">
-                        <input id="ed_sl_corn_os" class="small-input">
-                    </div>
-                    <div class="opto-edit-grid">
-                        <div>Lens</div>
-                        <input id="ed_sl_lens_od" class="small-input">
-                        <input id="ed_sl_lens_os" class="small-input">
-                    </div>
-                    <div class="opto-edit-grid">
-                        <div><strong>IOP</strong></div>
-                        <input id="ed_iop_od" class="small-input" placeholder="mmHg">
-                        <input id="ed_iop_os" class="small-input" placeholder="mmHg">
+                    
+                    <div class="opto-edit-grid"><div>Lids</div><input id="ed_sl_lids_od" class="small-input"><input id="ed_sl_lids_os" class="small-input"></div>
+                    <div class="opto-edit-grid"><div>Conj</div><input id="ed_sl_conj_od" class="small-input"><input id="ed_sl_conj_os" class="small-input"></div>
+                    <div class="opto-edit-grid"><div>Cornea</div><input id="ed_sl_corn_od" class="small-input"><input id="ed_sl_corn_os" class="small-input"></div>
+                    <div class="opto-edit-grid"><div>AC</div><input id="ed_sl_ac_od" class="small-input"><input id="ed_sl_ac_os" class="small-input"></div>
+                    <div class="opto-edit-grid"><div>Pupil</div><input id="ed_sl_pupil_od" class="small-input"><input id="ed_sl_pupil_os" class="small-input"></div>
+                    <div class="opto-edit-grid"><div>Lens</div><input id="ed_sl_lens_od" class="small-input"><input id="ed_sl_lens_os" class="small-input"></div>
+                    
+                    <div class="opto-edit-grid" style="background:#fff3cd; padding:2px;">
+                        <div><strong>IOP</strong></div><input id="ed_iop_od" class="small-input" style="font-weight:bold;"><input id="ed_iop_os" class="small-input" style="font-weight:bold;">
                     </div>
                     <div style="margin-top:5px;">
-                        <label style="font-size:0.8em;">Note:</label>
-                        <input id="ed_sl_remarks" class="small-input" style="width:100%;">
+                        <label style="font-size:0.8em;">Remarks:</label>
+                        <input id="ed_sl_remarks" class="small-input">
                     </div>
                 </div>
             </div>
-            <div style="margin-top:5px; font-size:0.85em; color:#666;">* Edits made here will update the patient record.</div>
         </details>
 
         <form onsubmit="event.preventDefault(); window.saveAndFinish();">
@@ -341,36 +337,67 @@
             invBox.classList.add('hidden');
         }
 
-        // -- POPULATE EDITABLE OPTOMETRIST FIELDS --
+        // -- POPULATE DATA --
         const d = currentVisit.optoData || {};
         const safe = (obj, path) => path.split('.').reduce((acc, part) => acc && acc[part], obj) || '';
 
+        // 1. Read Only Section
+        document.getElementById('disp_cc').innerText = safe(d, 'history.complaint') || '-';
+        document.getElementById('disp_oh').innerText = safe(d, 'history.ocular_hx') || '-';
+        document.getElementById('disp_sys').innerText = (safe(d, 'history.systemic') || '-') + ' / ' + (safe(d, 'history.allergies') || '-');
+        
+        document.getElementById('disp_pgp_od').innerText = `OD: ${safe(d, 'pgp.od.sph')}/${safe(d, 'pgp.od.cyl')} x${safe(d, 'pgp.od.ax')} Add ${safe(d, 'pgp.od.add')}`;
+        document.getElementById('disp_pgp_os').innerText = `OS: ${safe(d, 'pgp.os.sph')}/${safe(d, 'pgp.os.cyl')} x${safe(d, 'pgp.os.ax')} Add ${safe(d, 'pgp.os.add')}`;
+        
+        const extOD = `${safe(d, 'external.od.ext')}, EOM:${safe(d, 'external.od.eom')}, CT:${safe(d, 'external.od.ct_dist')}`;
+        const extOS = `${safe(d, 'external.os.ext')}, EOM:${safe(d, 'external.os.eom')}, CT:${safe(d, 'external.os.ct_dist')}`;
+        document.getElementById('disp_ext_od').innerText = "OD: " + extOD;
+        document.getElementById('disp_ext_os').innerText = "OS: " + extOS;
+
+        // 2. Editable Section
         // VA
         document.getElementById('ed_va_od').value = safe(d, 'va.od.dist');
         document.getElementById('ed_va_os').value = safe(d, 'va.os.dist');
         document.getElementById('ed_ph_od').value = safe(d, 'va.od.ph');
         document.getElementById('ed_ph_os').value = safe(d, 'va.os.ph');
+        document.getElementById('ed_va_near_od').value = safe(d, 'va.od.near');
+        document.getElementById('ed_va_near_os').value = safe(d, 'va.os.near');
         // Refraction
         document.getElementById('ed_rx_sph_od').value = safe(d, 'refraction.od.sph');
         document.getElementById('ed_rx_cyl_od').value = safe(d, 'refraction.od.cyl');
         document.getElementById('ed_rx_ax_od').value = safe(d, 'refraction.od.ax');
+        document.getElementById('ed_rx_add_od').value = safe(d, 'refraction.od.add');
+        document.getElementById('ed_rx_va_od').value = safe(d, 'refraction.od.va');
+
         document.getElementById('ed_rx_sph_os').value = safe(d, 'refraction.os.sph');
         document.getElementById('ed_rx_cyl_os').value = safe(d, 'refraction.os.cyl');
         document.getElementById('ed_rx_ax_os').value = safe(d, 'refraction.os.ax');
-        document.getElementById('ed_rx_add_od').value = safe(d, 'refraction.od.add');
         document.getElementById('ed_rx_add_os').value = safe(d, 'refraction.os.add');
-        // Slit Lamp
+        document.getElementById('ed_rx_va_os').value = safe(d, 'refraction.os.va');
+        
+        // Slit Lamp (COMPLETE MAPPING)
         document.getElementById('ed_sl_lids_od').value = safe(d, 'slitlamp.od.lids');
         document.getElementById('ed_sl_lids_os').value = safe(d, 'slitlamp.os.lids');
+        
+        document.getElementById('ed_sl_conj_od').value = safe(d, 'slitlamp.od.conj'); // Fixed missing
+        document.getElementById('ed_sl_conj_os').value = safe(d, 'slitlamp.os.conj'); // Fixed missing
+        
         document.getElementById('ed_sl_corn_od').value = safe(d, 'slitlamp.od.corn');
         document.getElementById('ed_sl_corn_os').value = safe(d, 'slitlamp.os.corn');
+        
+        document.getElementById('ed_sl_ac_od').value = safe(d, 'slitlamp.od.ac'); // Fixed missing
+        document.getElementById('ed_sl_ac_os').value = safe(d, 'slitlamp.os.ac'); // Fixed missing
+        
+        document.getElementById('ed_sl_pupil_od').value = safe(d, 'slitlamp.od.pupil'); // Fixed missing
+        document.getElementById('ed_sl_pupil_os').value = safe(d, 'slitlamp.os.pupil'); // Fixed missing
+        
         document.getElementById('ed_sl_lens_od').value = safe(d, 'slitlamp.lens_od');
         document.getElementById('ed_sl_lens_os').value = safe(d, 'slitlamp.lens_os');
         document.getElementById('ed_iop_od').value = safe(d, 'slitlamp.iop_od');
         document.getElementById('ed_iop_os').value = safe(d, 'slitlamp.iop_os');
         document.getElementById('ed_sl_remarks').value = safe(d, 'slitlamp.remarks');
 
-        // Populate Doctor's Saved Data (if any)
+        // Doctor Data
         const docData = currentVisit.doctorData || {};
         document.getElementById('diagnosis').value = docData.diagnosis || "";
         document.getElementById('advice').value = docData.advice || "";
@@ -398,57 +425,58 @@
         tbody.appendChild(tr);
     };
 
-    // --- SAVE LOGIC (Handles rewriting Opto Data + Saving Doctor Data) ---
     async function performSave() {
         if(!currentVisit) return;
         
-        // 1. Gather Medicines
         const meds = [];
         document.querySelectorAll('#med-table tbody tr').forEach(tr => {
             const name = tr.querySelector('.med-name').value;
             if(name) meds.push({ eye: tr.querySelector('.med-eye').value, name, dose: tr.querySelector('.med-dose').value, freq: tr.querySelector('.med-freq').value, duration: tr.querySelector('.med-dur').value });
         });
 
-        // 2. Gather Edited Opto Data (Rewriting)
-        // We fetch the existing object first to preserve fields we don't show (like EOM), then overwrite the edited ones
+        // Rewrite Opto Data with Edits
         let updatedOpto = currentVisit.optoData || {};
+        const set = (obj, path, val) => { const k = path.split('.'); let t = obj; k.slice(0,-1).forEach(key=>{ if(!t[key])t[key]={}; t=t[key]; }); t[k.pop()] = val; };
         
-        // Helper to ensure path exists
-        const set = (obj, path, val) => {
-            const keys = path.split('.');
-            let last = keys.pop();
-            let target = obj;
-            keys.forEach(k => { if(!target[k]) target[k] = {}; target = target[k]; });
-            target[last] = val;
-        };
-        
-        // Overwrite Specific Fields
         set(updatedOpto, 'va.od.dist', document.getElementById('ed_va_od').value);
         set(updatedOpto, 'va.os.dist', document.getElementById('ed_va_os').value);
         set(updatedOpto, 'va.od.ph', document.getElementById('ed_ph_od').value);
         set(updatedOpto, 'va.os.ph', document.getElementById('ed_ph_os').value);
-        
+        set(updatedOpto, 'va.od.near', document.getElementById('ed_va_near_od').value);
+        set(updatedOpto, 'va.os.near', document.getElementById('ed_va_near_os').value);
+
         set(updatedOpto, 'refraction.od.sph', document.getElementById('ed_rx_sph_od').value);
         set(updatedOpto, 'refraction.od.cyl', document.getElementById('ed_rx_cyl_od').value);
         set(updatedOpto, 'refraction.od.ax', document.getElementById('ed_rx_ax_od').value);
+        set(updatedOpto, 'refraction.od.add', document.getElementById('ed_rx_add_od').value);
+        set(updatedOpto, 'refraction.od.va', document.getElementById('ed_rx_va_od').value);
+
         set(updatedOpto, 'refraction.os.sph', document.getElementById('ed_rx_sph_os').value);
         set(updatedOpto, 'refraction.os.cyl', document.getElementById('ed_rx_cyl_os').value);
         set(updatedOpto, 'refraction.os.ax', document.getElementById('ed_rx_ax_os').value);
-        set(updatedOpto, 'refraction.od.add', document.getElementById('ed_rx_add_od').value);
         set(updatedOpto, 'refraction.os.add', document.getElementById('ed_rx_add_os').value);
+        set(updatedOpto, 'refraction.os.va', document.getElementById('ed_rx_va_os').value);
 
         set(updatedOpto, 'slitlamp.od.lids', document.getElementById('ed_sl_lids_od').value);
-        set(updatedOpto, 'slitlamp.os.lids', document.getElementById('ed_sl_lids_os').value);
+        set(updatedOpto, 'slitlamp.od.conj', document.getElementById('ed_sl_conj_od').value);
         set(updatedOpto, 'slitlamp.od.corn', document.getElementById('ed_sl_corn_od').value);
-        set(updatedOpto, 'slitlamp.os.corn', document.getElementById('ed_sl_corn_os').value);
+        set(updatedOpto, 'slitlamp.od.ac', document.getElementById('ed_sl_ac_od').value);
+        set(updatedOpto, 'slitlamp.od.pupil', document.getElementById('ed_sl_pupil_od').value);
         set(updatedOpto, 'slitlamp.lens_od', document.getElementById('ed_sl_lens_od').value);
-        set(updatedOpto, 'slitlamp.lens_os', document.getElementById('ed_sl_lens_os').value);
         set(updatedOpto, 'slitlamp.iop_od', document.getElementById('ed_iop_od').value);
+
+        set(updatedOpto, 'slitlamp.os.lids', document.getElementById('ed_sl_lids_os').value);
+        set(updatedOpto, 'slitlamp.os.conj', document.getElementById('ed_sl_conj_os').value);
+        set(updatedOpto, 'slitlamp.os.corn', document.getElementById('ed_sl_corn_os').value);
+        set(updatedOpto, 'slitlamp.os.ac', document.getElementById('ed_sl_ac_os').value);
+        set(updatedOpto, 'slitlamp.os.pupil', document.getElementById('ed_sl_pupil_os').value);
+        set(updatedOpto, 'slitlamp.lens_os', document.getElementById('ed_sl_lens_os').value);
         set(updatedOpto, 'slitlamp.iop_os', document.getElementById('ed_iop_os').value);
+        
         set(updatedOpto, 'slitlamp.remarks', document.getElementById('ed_sl_remarks').value);
 
         await updateDoc(doc(db, "visits", currentVisit.firebaseId), {
-            optoData: updatedOpto, // Save rewrites
+            optoData: updatedOpto,
             doctorData: { 
                 diagnosis: document.getElementById('diagnosis').value, 
                 advice: document.getElementById('advice').value, 
@@ -459,19 +487,16 @@
         });
     }
 
-    // --- INVESTIGATION LOGIC ---
     window.sendToInvestigation = async function() {
-        const invName = prompt("Enter Investigation Required (e.g. 'OCT Macula', 'Fields', 'IOP Phase'):");
+        const invName = prompt("Enter Investigation Required:");
         if(!invName) return;
-
         try {
             await updateDoc(doc(db, "visits", currentVisit.firebaseId), {
                 status: "Investigation",
                 investigationRequest: invName,
-                investigationReport: "" // clear previous report if any
+                investigationReport: "" 
             });
-            alert("Sent to Optometrist for Investigation.");
-            window.cancelConsult();
+            alert("Sent to Optometrist."); window.cancelConsult();
         } catch(e) { alert(e.message); }
     };
 
@@ -486,7 +511,6 @@
     window.printRx = async function() {
         if(!currentVisit) return;
         try { await performSave(); } catch(e) { console.error(e); }
-
         const dr = doctorProfiles[loggedInDoctor] || { qual: "", reg: "", desig: "" };
         const diag = document.getElementById('diagnosis').value || '-';
         const adv = document.getElementById('advice').value || '-';
@@ -494,7 +518,6 @@
         const showDiag = document.getElementById('chk_diagnosis').checked;
         const showAdv = document.getElementById('chk_advice').checked;
         const showMeds = document.getElementById('chk_meds').checked;
-        
         let medRows = "";
         if(showMeds) {
             document.querySelectorAll('#med-table tbody tr').forEach(tr => {
@@ -503,27 +526,8 @@
                 if(name) medRows += `<tr><td><strong>${eye}</strong></td><td>${name}</td><td>${tr.querySelector('.med-dose').value}</td><td>${tr.querySelector('.med-freq').value}</td><td>${tr.querySelector('.med-dur').value}</td></tr>`;
             });
         }
-
         const win = window.open('', '', 'width=800,height=600');
-        const content = `<html><head><title>Rx</title><base href="${window.location.href}">
-        <style>body{font-family:'Segoe UI',sans-serif;padding:40px;color:#333;} 
-        .header-grid{display:grid;grid-template-columns:100px 1fr;gap:20px;align-items:center;border-bottom:3px solid #004085;padding-bottom:15px;margin-bottom:20px;}
-        .header-text{text-align:center;} .header-text h2{margin:0;color:#004085;font-size:24px;text-transform:uppercase;} .header-text p{margin:2px 0;font-size:14px;}
-        .meta{display:flex;justify-content:space-between;margin-bottom:20px;border-bottom:1px solid #ccc;padding-bottom:10px;align-items:flex-start;}
-        .section h4{margin:0 0 8px 0;color:#004085;text-transform:uppercase;font-size:0.9em;border-bottom:1px solid #eee;padding-bottom:3px;display:inline-block;}
-        .content{font-size:1.1em;line-height:1.5;margin-bottom:20px;}
-        table{width:100%;border-collapse:collapse;} th,td{border-bottom:1px solid #ddd;padding:8px;text-align:left;} th{background-color:#f8f9fa;}
-        .footer{margin-top:40px;display:flex;justify-content:space-between;align-items:flex-end; border-top: 1px dotted #ccc; padding-top:20px;}
-        </style></head>
-        <body onload="setTimeout(function(){window.print()}, 800)">
-            <div class="header-grid"><img src="logo.png" style="width:100px;height:auto;"><div class="header-text"><h2>MSN Cataract and IOL Hospital</h2><p><em>(A unit of Kantashree Community Care)</em></p><p>Tilak Deka Road, Nagaon, Assam, Pin – 782001</p><p>তিলক ডেকা পথ, নগাঁও, অসম - ৭৮২০০১</p><p>Mobile : 8486887503 | Govt. Licence No. – SHA/205</p></div></div>
-            <div class="meta"><div style="flex:1;"><strong>Name / নাম:</strong> ${currentVisit.patientName}<br><strong>PID:</strong> ${currentVisit.pid} &nbsp;|&nbsp; <strong>Age/Sex:</strong> ${currentVisit.age}Y/${currentVisit.gender}<br><strong>Date / তাৰিখ:</strong> ${new Date().toLocaleDateString('en-IN')}</div><div style="flex:1;text-align:right;"><strong style="font-size:1.1em;color:#004085;">${loggedInDoctor}</strong><br><span style="font-size:0.9em;color:#555;">${dr.qual}</span><br><span style="font-size:0.9em;color:#555;">${dr.reg}</span><br><span style="font-size:0.85em;font-weight:bold;">${dr.desig}</span></div></div>
-            ${showDiag ? `<div class="section"><h4>Diagnosis / ৰোগ নিৰ্ণয়</h4><div class="content">${diag.replace(/\n/g, '<br>')}</div></div>` : ''}
-            ${showAdv ? `<div class="section"><h4>Advice / পৰামৰ্শ</h4><div class="content">${adv.replace(/\n/g, '<br>')}</div></div>` : ''}
-            ${showMeds && medRows ? `<div class="section"><h4>Medicines (Rx) / ঔষধ</h4><table><thead><tr><th>Eye / চকু</th><th>Medicine / ঔষধ</th><th>Dose / মাত্ৰা</th><th>Freq / বাৰ</th><th>Duration / সময়</th></tr></thead><tbody>${medRows}</tbody></table></div>` : ''}
-            ${followUp ? `<div class="section" style="margin-top:20px; border:2px solid #000; padding:10px; display:inline-block;"><strong>Next Visit / পৰৱৰ্তী সাক্ষাৎ:</strong> <span style="font-size:1.2em; font-weight:bold;">${new Date(followUp).toLocaleDateString('en-IN')}</span></div>` : ''}
-            <div class="footer"><div style="font-size:0.8em;color:#777;">A Day Eye Care Institution<br>এক দিৱসীয় চকুৰ চিকিৎসা প্ৰতিষ্ঠান</div><div style="text-align:center;">______________________<br><strong>Signature / স্বাক্ষৰ</strong></div></div>
-        </body></html>`;
+        const content = `<html><head><title>Rx</title><base href="${window.location.href}"><style>body{font-family:'Segoe UI',sans-serif;padding:40px;color:#333;}.header-grid{display:grid;grid-template-columns:100px 1fr;gap:20px;align-items:center;border-bottom:3px solid #004085;padding-bottom:15px;margin-bottom:20px;}.header-text{text-align:center;}.header-text h2{margin:0;color:#004085;font-size:24px;text-transform:uppercase;}.header-text p{margin:2px 0;font-size:14px;}.meta{display:flex;justify-content:space-between;margin-bottom:20px;border-bottom:1px solid #ccc;padding-bottom:10px;align-items:flex-start;}.section h4{margin:0 0 8px 0;color:#004085;text-transform:uppercase;font-size:0.9em;border-bottom:1px solid #eee;padding-bottom:3px;display:inline-block;}.content{font-size:1.1em;line-height:1.5;margin-bottom:20px;}table{width:100%;border-collapse:collapse;}th,td{border-bottom:1px solid #ddd;padding:8px;text-align:left;}th{background-color:#f8f9fa;}.footer{margin-top:40px;display:flex;justify-content:space-between;align-items:flex-end;border-top:1px dotted #ccc;padding-top:20px;}</style></head><body onload="setTimeout(function(){window.print()}, 800)"><div class="header-grid"><img src="logo.png" style="width:100px;height:auto;"><div class="header-text"><h2>MSN Cataract and IOL Hospital</h2><p><em>(A unit of Kantashree Community Care)</em></p><p>Tilak Deka Road, Nagaon, Assam, Pin – 782001</p><p>তিলক ডেকা পথ, নগাঁও, অসম - ৭৮২০০১</p><p>Mobile : 8486887503 | Govt. Licence No. – SHA/205</p></div></div><div class="meta"><div style="flex:1;"><strong>Name / নাম:</strong> ${currentVisit.patientName}<br><strong>PID:</strong> ${currentVisit.pid} &nbsp;|&nbsp; <strong>Age/Sex:</strong> ${currentVisit.age}Y/${currentVisit.gender}<br><strong>Date / তাৰিখ:</strong> ${new Date().toLocaleDateString('en-IN')}</div><div style="flex:1;text-align:right;"><strong style="font-size:1.1em;color:#004085;">${loggedInDoctor}</strong><br><span style="font-size:0.9em;color:#555;">${dr.qual}</span><br><span style="font-size:0.9em;color:#555;">${dr.reg}</span><br><span style="font-size:0.85em;font-weight:bold;">${dr.desig}</span></div></div>${showDiag ? `<div class="section"><h4>Diagnosis / ৰোগ নিৰ্ণয়</h4><div class="content">${diag.replace(/\n/g, '<br>')}</div></div>` : ''}${showAdv ? `<div class="section"><h4>Advice / পৰামৰ্শ</h4><div class="content">${adv.replace(/\n/g, '<br>')}</div></div>` : ''}${showMeds && medRows ? `<div class="section"><h4>Medicines (Rx) / ঔষধ</h4><table><thead><tr><th>Eye / চকু</th><th>Medicine / ঔষধ</th><th>Dose / মাত্ৰা</th><th>Freq / বাৰ</th><th>Duration / সময়</th></tr></thead><tbody>${medRows}</tbody></table></div>` : ''}${followUp ? `<div class="section" style="margin-top:20px; border:2px solid #000; padding:10px; display:inline-block;"><strong>Next Visit / পৰৱৰ্তী সাক্ষাৎ:</strong> <span style="font-size:1.2em; font-weight:bold;">${new Date(followUp).toLocaleDateString('en-IN')}</span></div>` : ''}<div class="footer"><div style="font-size:0.8em;color:#777;">A Day Eye Care Institution<br>এক দিৱসীয় চকুৰ চিকিৎসা প্ৰতিষ্ঠান</div><div style="text-align:center;">______________________<br><strong>Signature / স্বাক্ষৰ</strong></div></div></body></html>`;
         win.document.write(content); win.document.close();
     };
 </script>
