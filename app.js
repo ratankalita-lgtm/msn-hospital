@@ -1,5 +1,5 @@
 /**
- * RECEPTION APP LOGIC (Firebase Cloud Version)
+ * RECEPTION APP LOGIC - SEQUENTIAL IDs + EDIT FEATURE
  */
 
 // --- GLOBAL VARIABLES ---
@@ -44,8 +44,6 @@ function setupUI() {
     document.getElementById('searchBtn').addEventListener('click', searchDatabase);
     document.getElementById('clearBtn').addEventListener('click', resetForm);
     document.getElementById('dob').addEventListener('change', calculateAge);
-    
-    // NEW: Listener for Update Button
     document.getElementById('updateBtn').addEventListener('click', updatePatientDetails);
 
     document.getElementById('pincode').addEventListener('input', (e) => { 
@@ -93,8 +91,23 @@ async function createOPDVisit() {
         if(!name || !phone || !docName) throw new Error("Please fill Name, Phone and Doctor.");
         if (!/^\d{10}$/.test(phone)) throw new Error("Phone number must be exactly 10 digits (Numbers only).");
 
+        // --- NEW SEQUENTIAL ID LOGIC ---
         let pid = loadedPID; 
-        if (!pid) pid = 'P' + Date.now().toString().slice(-6) + Math.floor(Math.random() * 10);
+        if (!pid) {
+            // Find the highest existing Sequential ID (P-1000+)
+            let maxId = 1000;
+            db_patients.forEach(p => {
+                if (p.id && p.id.startsWith("P-")) {
+                    const num = parseInt(p.id.split("-")[1]);
+                    if (!isNaN(num) && num > maxId) {
+                        maxId = num;
+                    }
+                }
+            });
+            // Increment by 1
+            pid = 'P-' + (maxId + 1);
+        }
+        // -------------------------------
 
         const todayStr = new Date().toLocaleDateString('en-CA'); 
 
@@ -118,7 +131,8 @@ async function createOPDVisit() {
             await window.addDoc(window.collection(window.db, "patients"), patientRecord);
         }
 
-        const opdID = 'OPD-' + Date.now().toString().slice(-6) + Math.floor(Math.random() * 10);
+        // Generate OPD ID (Keep random for safety, or sequential if you prefer)
+        const opdID = 'OPD-' + Date.now().toString().slice(-6);
         
         const visitRecord = {
             opdId: opdID,
@@ -136,7 +150,9 @@ async function createOPDVisit() {
         };
 
         await window.addDoc(window.collection(window.db, "visits"), visitRecord);
-        showToast(`Success! OPD: ${opdID}`);
+        
+        // Show Popup with ID
+        alert(`✅ SUCCESS!\n\n👤 Patient ID: ${pid}\n🏥 OPD ID: ${opdID}`);
         resetForm();
 
     } catch (e) {
@@ -147,7 +163,7 @@ async function createOPDVisit() {
     }
 }
 
-// --- NEW FUNCTION: UPDATE DETAILS ONLY ---
+// --- UPDATE DETAILS ONLY ---
 async function updatePatientDetails() {
     if(!loadedPID) { alert("No patient loaded to update."); return; }
     
@@ -224,10 +240,8 @@ window.loadPatient = function(id) {
     document.getElementById('district').value = p.district;
     document.getElementById('address').value = p.address;
     
-    // Show the Update Button
     document.getElementById('updateBtn').classList.remove('hidden');
-    
-    document.getElementById('search-result').innerHTML = '<div style="background:#d4edda; color:#155724; padding:5px;">Patient Loaded. You can now Edit or Create Visit.</div>';
+    document.getElementById('search-result').innerHTML = '<div style="background:#d4edda; color:#155724; padding:5px;">Patient Loaded. Edit or Create Visit.</div>';
     document.getElementById('visit_type').value = "Review / Follow-up";
 }
 
@@ -269,13 +283,7 @@ function resetForm() {
     loadedPID = null; 
     document.getElementById('patient_id').value = "New Patient"; 
     document.getElementById('search-result').innerHTML = '';
-    // Hide the Update Button
     document.getElementById('updateBtn').classList.add('hidden');
-}
-
-function showToast(msg) { 
-    const t = document.getElementById('toast'); 
-    if(t) { t.innerText = msg; t.className = "show"; setTimeout(() => t.className = "", 3000); } 
 }
 
 window.printSlip = function(opdId) {
