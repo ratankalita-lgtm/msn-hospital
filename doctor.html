@@ -139,6 +139,20 @@
     <option value="Sodium Hyaluronate">
 </datalist>
 
+<datalist id="freq-list">
+    <option value="1-0-1">
+    <option value="1-1-1">
+    <option value="1-0-0">
+    <option value="0-0-1">
+    <option value="0-1-0">
+    <option value="SOS">
+    <option value="HS (Bedtime)">
+    <option value="Once a week">
+    <option value="4 Times/Day">
+    <option value="6 Times/Day">
+    <option value="Every 2 Hours">
+</datalist>
+
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, doc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -320,11 +334,18 @@
         currentVisit = null;
     };
 
+    // --- ADD MEDICINE ROW (UPDATED with Input + Datalist) ---
     window.addMedRow = function() {
         const tbody = document.querySelector('#med-table tbody');
         const tr = document.createElement('tr');
-        // UPDATED: Added list="med-list"
-        tr.innerHTML = `<td><input class="med-name" list="med-list" placeholder="Start typing..."></td><td><input class="med-dose" placeholder="Dose"></td><td><select class="med-freq"><option>1-0-1</option><option>1-1-1</option><option>1-0-0</option><option>0-0-1</option><option>SOS</option></select></td><td><input class="med-dur" placeholder="Days"></td><td><button type="button" onclick="this.closest('tr').remove()" style="color:red;border:none;background:none;">X</button></td>`;
+        // Now using inputs for Medicine AND Frequency with Datalists
+        tr.innerHTML = `
+            <td><input class="med-name" list="med-list" placeholder="Start typing..."></td>
+            <td><input class="med-dose" placeholder="Dose"></td>
+            <td><input class="med-freq" list="freq-list" placeholder="Freq (e.g. 1-0-1)"></td>
+            <td><input class="med-dur" placeholder="Days"></td>
+            <td><button type="button" onclick="this.closest('tr').remove()" style="color:red;border:none;background:none;">X</button></td>
+        `;
         tbody.appendChild(tr);
     };
 
@@ -382,17 +403,30 @@
                     <h2>MSN Cataract and IOL Hospital</h2>
                     <p><em>(A unit of Kantashree Community Care, A Registered Society)</em></p>
                     <p>Tilak Deka Road, Nagaon, Assam, Pin – 782001</p>
+                    <p>তিলক ডেকা পথ, নগাঁও, অসম - ৭৮২০০১</p>
                     <p>Mobile : 8486887503 | Govt. Licence No. – SHA/205</p>
                 </div>
             </div>
             <div class="meta">
-                <div style="flex:1;"><strong>Name:</strong> ${currentVisit.patientName}<br><strong>PID:</strong> ${currentVisit.pid} &nbsp;|&nbsp; <strong>Age/Sex:</strong> ${currentVisit.age}Y/${currentVisit.gender}<br><strong>Date:</strong> ${new Date().toLocaleDateString()}</div>
-                <div style="flex:1;text-align:right;"><strong style="font-size:1.1em;color:#004085;">${loggedInDoctor}</strong><br><span style="font-size:0.9em;color:#555;">${dr.qual}</span><br><span style="font-size:0.9em;color:#555;">${dr.reg}</span><br><span style="font-size:0.85em;font-weight:bold;">${dr.desig}</span></div>
+                <div style="flex:1;">
+                    <strong>Name / নাম:</strong> ${currentVisit.patientName}<br>
+                    <strong>PID:</strong> ${currentVisit.pid} &nbsp;|&nbsp; <strong>Age/Sex:</strong> ${currentVisit.age}Y/${currentVisit.gender}<br>
+                    <strong>Date / তাৰিখ:</strong> ${new Date().toLocaleDateString()}
+                </div>
+                <div style="flex:1;text-align:right;">
+                    <strong style="font-size:1.1em;color:#004085;">${loggedInDoctor}</strong><br>
+                    <span style="font-size:0.9em;color:#555;">${dr.qual}</span><br>
+                    <span style="font-size:0.9em;color:#555;">${dr.reg}</span><br>
+                    <span style="font-size:0.85em;font-weight:bold;">${dr.desig}</span>
+                </div>
             </div>
-            ${showDiag ? `<div class="section"><h4>Diagnosis</h4><div class="content">${diag.replace(/\n/g, '<br>')}</div></div>` : ''}
-            ${showAdv ? `<div class="section"><h4>Advice / Plan</h4><div class="content">${adv.replace(/\n/g, '<br>')}</div></div>` : ''}
-            ${showMeds && medRows ? `<div class="section"><h4>Medicines (Rx)</h4><table><thead><tr><th>Medicine</th><th>Dose</th><th>Freq</th><th>Duration</th></tr></thead><tbody>${medRows}</tbody></table></div>` : ''}
-            <div class="footer"><div style="font-size:0.8em;color:#777;">A Day Eye Care Institution</div><div style="text-align:center;">______________________<br><strong>Signature</strong></div></div>
+            ${showDiag ? `<div class="section"><h4>Diagnosis / ৰোগ নিৰ্ণয়</h4><div class="content">${diag.replace(/\n/g, '<br>')}</div></div>` : ''}
+            ${showAdv ? `<div class="section"><h4>Advice / পৰামৰ্শ</h4><div class="content">${adv.replace(/\n/g, '<br>')}</div></div>` : ''}
+            ${showMeds && medRows ? `<div class="section"><h4>Medicines (Rx) / ঔষধ</h4><table><thead><tr><th>Medicine / ঔষধ</th><th>Dose / মাত্ৰা</th><th>Freq / বাৰ</th><th>Duration / সময়</th></tr></thead><tbody>${medRows}</tbody></table></div>` : ''}
+            <div class="footer">
+                <div style="font-size:0.8em;color:#777;">A Day Eye Care Institution<br>এক দিৱসীয় চকুৰ চিকিৎসা প্ৰতিষ্ঠান</div>
+                <div style="text-align:center;">______________________<br><strong>Signature / স্বাক্ষৰ</strong></div>
+            </div>
         </body></html>`;
         win.document.write(content); win.document.close();
     };
