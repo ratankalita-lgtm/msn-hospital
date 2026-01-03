@@ -107,13 +107,31 @@
                 <h4>Medicines (Rx)</h4>
                 <label class="print-control"><input type="checkbox" id="chk_meds" checked> Print on Rx</label>
             </div>
+            
             <table id="med-table" style="width:100%;">
-                <thead><tr><th>Medicine</th><th>Dose</th><th>Freq</th><th>Dur</th><th></th></tr></thead>
+                <thead>
+                    <tr>
+                        <th style="width:90px;">Eye</th> <th>Medicine</th>
+                        <th>Dose</th>
+                        <th>Freq</th>
+                        <th>Dur</th>
+                        <th style="width:30px;"></th>
+                    </tr>
+                </thead>
                 <tbody></tbody>
             </table>
             <button type="button" class="btn small" onclick="window.addMedRow()" style="margin-top:5px;">+ Add Med</button>
 
-            <div class="actions" style="margin-top:20px; border-top:1px solid #eee; padding-top:15px; display:flex; gap:10px;">
+            <div class="row" style="margin-top:20px; border-top:1px solid #eee; padding-top:15px; align-items:center;">
+                <div class="col narrow">
+                    <label style="margin:0; font-weight:bold;">Follow-up Date:</label>
+                </div>
+                <div class="col">
+                    <input type="date" id="follow_up_date" style="max-width: 200px;">
+                </div>
+            </div>
+
+            <div class="actions" style="margin-top:20px; display:flex; gap:10px;">
                 <button type="submit" class="btn" style="flex:1;">Save & Finish</button>
                 <button type="button" class="btn" onclick="window.printRx()" style="background-color: #17a2b8; color: white; border:none; flex:1;">🖨️ Print Rx</button>
             </div>
@@ -195,7 +213,6 @@
 
     window.logout = function() { localStorage.removeItem('loggedInDoctor'); window.location.href = 'index.html'; };
 
-    // --- TEMPLATES ---
     window.loadTemplates = function() {
         const select = document.getElementById('advice_templates');
         select.innerHTML = '<option value="">-- Select Template --</option>';
@@ -228,7 +245,6 @@
         }
     };
 
-    // --- SYNC ---
     function startDoctorSync() {
         onSnapshot(collection(db, "visits"), (snapshot) => {
             db_visits = snapshot.docs.map(doc => ({ ...doc.data(), firebaseId: doc.id }));
@@ -257,7 +273,6 @@
         });
     }
 
-    // --- START CONSULT ---
     window.startConsult = function(opdId) {
         currentVisit = db_visits.find(v => v.opdId === opdId);
         if(!currentVisit) return;
@@ -278,13 +293,11 @@
                 <div class="opto-data-row"><span><strong>Systemic:</strong> ${safe(d, 'history.systemic')}</span></div>
                 <div class="opto-data-row"><span><strong>Allergies:</strong> ${safe(d, 'history.allergies')}</span></div>
             </div>
-
             <div class="opto-section">
                 <h5>Previous Glasses (PGP)</h5>
                 <div class="opto-data-row"><span>OD: ${safe(d, 'pgp.od.sph')}/${safe(d, 'pgp.od.cyl')} x${safe(d, 'pgp.od.ax')} Add ${safe(d, 'pgp.od.add')}</span></div>
                 <div class="opto-data-row"><span>OS: ${safe(d, 'pgp.os.sph')}/${safe(d, 'pgp.os.cyl')} x${safe(d, 'pgp.os.ax')} Add ${safe(d, 'pgp.os.add')}</span></div>
             </div>
-            
             <div class="opto-section">
                 <h5>Visual Acuity & Refraction</h5>
                 <div class="opto-data-row"><span><strong>Unaided:</strong> OD ${safe(d, 'va.od.dist')} | OS ${safe(d, 'va.os.dist')}</span></div>
@@ -293,15 +306,12 @@
                 <div class="opto-data-row"><span>OD: ${safe(d, 'refraction.od.sph')}/${safe(d, 'refraction.od.cyl')} x ${safe(d, 'refraction.od.ax')} (${safe(d, 'refraction.od.va')})</span></div>
                 <div class="opto-data-row"><span>OS: ${safe(d, 'refraction.os.sph')}/${safe(d, 'refraction.os.cyl')} x ${safe(d, 'refraction.os.ax')} (${safe(d, 'refraction.os.va')})</span></div>
             </div>
-
             <div class="opto-section">
                 <h5>External Exam</h5>
                 <div class="opto-data-row"><span><strong>Ext:</strong> ${safe(d, 'external.od.ext')} | ${safe(d, 'external.os.ext')}</span></div>
                 <div class="opto-data-row"><span><strong>EOM:</strong> ${safe(d, 'external.od.eom')} | ${safe(d, 'external.os.eom')}</span></div>
-                <div class="opto-data-row"><span><strong>Cover (Dist):</strong> ${safe(d, 'external.od.ct_dist')} | ${safe(d, 'external.os.ct_dist')}</span></div>
-                <div class="opto-data-row"><span><strong>Cover (Near):</strong> ${safe(d, 'external.od.ct_near')} | ${safe(d, 'external.os.ct_near')}</span></div>
+                <div class="opto-data-row"><span><strong>Cover:</strong> Dist: ${safe(d, 'external.od.ct_dist')} | Near: ${safe(d, 'external.od.ct_near')}</span></div>
             </div>
-
             <div class="opto-section" style="grid-column: span 2; border-top:1px dashed #ccc; padding-top:5px;">
                 <h5>Slit Lamp Examination</h5>
                 <div class="sl-grid">
@@ -312,7 +322,6 @@
                     <div>A.C.</div><div>${safe(d, 'slitlamp.od.ac')}</div><div>${safe(d, 'slitlamp.os.ac')}</div>
                     <div>Pupil</div><div>${safe(d, 'slitlamp.od.pupil')}</div><div>${safe(d, 'slitlamp.os.pupil')}</div>
                 </div>
-
                 <div class="opto-data-row" style="margin-top:10px;">
                     <span><strong>IOP:</strong> OD: ${safe(d, 'slitlamp.iop_od')} / OS: ${safe(d, 'slitlamp.iop_os')} mmHg</span>
                     <span><strong>Lens:</strong> OD: ${safe(d, 'slitlamp.lens_od')} / OS: ${safe(d, 'slitlamp.lens_os')}</span>
@@ -322,10 +331,19 @@
             </div>
         `;
         document.getElementById('opto-details').open = true;
-        document.getElementById('diagnosis').value = "";
-        document.getElementById('advice').value = "";
+        
+        // Restore previous draft values if any
+        const docData = currentVisit.doctorData || {};
+        document.getElementById('diagnosis').value = docData.diagnosis || "";
+        document.getElementById('advice').value = docData.advice || "";
+        document.getElementById('follow_up_date').value = docData.followUp || ""; // LOAD FOLLOW UP
+        
         document.querySelector('#med-table tbody').innerHTML = "";
-        window.addMedRow();
+        if(docData.meds && docData.meds.length > 0) {
+            docData.meds.forEach(m => addMedRow(m));
+        } else {
+            window.addMedRow();
+        }
     };
 
     window.cancelConsult = function() {
@@ -334,18 +352,27 @@
         currentVisit = null;
     };
 
-    // --- ADD MEDICINE ROW (UPDATED with Input + Datalist) ---
-    window.addMedRow = function() {
+    // --- ADD MEDICINE ROW (UPDATED with Eye Select) ---
+    window.addMedRow = function(data = {}) {
         const tbody = document.querySelector('#med-table tbody');
         const tr = document.createElement('tr');
-        // Now using inputs for Medicine AND Frequency with Datalists
+        // Added Eye Select with OD/OS/OU options
         tr.innerHTML = `
-            <td><input class="med-name" list="med-list" placeholder="Start typing..."></td>
-            <td><input class="med-dose" placeholder="Dose"></td>
-            <td><input class="med-freq" list="freq-list" placeholder="Freq (e.g. 1-0-1)"></td>
-            <td><input class="med-dur" placeholder="Days"></td>
-            <td><button type="button" onclick="this.closest('tr').remove()" style="color:red;border:none;background:none;">X</button></td>
+            <td>
+                <select class="med-eye" style="width:100%;font-weight:bold;">
+                    <option value="OU">OU</option>
+                    <option value="OD">OD</option>
+                    <option value="OS">OS</option>
+                    <option value="-">-</option>
+                </select>
+            </td>
+            <td><input class="med-name" list="med-list" placeholder="Medicine" value="${data.name||''}"></td>
+            <td><input class="med-dose" placeholder="Dose" value="${data.dose||''}"></td>
+            <td><input class="med-freq" list="freq-list" placeholder="Freq" value="${data.freq||''}"></td>
+            <td><input class="med-dur" placeholder="Days" value="${data.duration||''}"></td>
+            <td><button type="button" onclick="this.closest('tr').remove()" style="color:red;border:none;background:none;font-weight:bold;">X</button></td>
         `;
+        if(data.eye) tr.querySelector('.med-eye').value = data.eye; // Set eye if exists
         tbody.appendChild(tr);
     };
 
@@ -354,13 +381,28 @@
         const meds = [];
         document.querySelectorAll('#med-table tbody tr').forEach(tr => {
             const name = tr.querySelector('.med-name').value;
-            if(name) meds.push({ name, dose: tr.querySelector('.med-dose').value, freq: tr.querySelector('.med-freq').value, duration: tr.querySelector('.med-dur').value });
+            if(name) {
+                meds.push({ 
+                    eye: tr.querySelector('.med-eye').value, // Save Eye
+                    name, 
+                    dose: tr.querySelector('.med-dose').value, 
+                    freq: tr.querySelector('.med-freq').value, 
+                    duration: tr.querySelector('.med-dur').value 
+                });
+            }
         });
+
+        const followUp = document.getElementById('follow_up_date').value; // Save Date
 
         try {
             const btn = document.querySelector('button[type="submit"]'); btn.innerText = "Saving...";
             await updateDoc(doc(db, "visits", currentVisit.firebaseId), {
-                doctorData: { diagnosis: document.getElementById('diagnosis').value, advice: document.getElementById('advice').value, meds },
+                doctorData: { 
+                    diagnosis: document.getElementById('diagnosis').value, 
+                    advice: document.getElementById('advice').value, 
+                    followUp: followUp,
+                    meds 
+                },
                 status: "Completed"
             });
             alert("Saved!"); window.cancelConsult(); btn.innerText = "Save & Finish";
@@ -373,6 +415,7 @@
         
         const diag = document.getElementById('diagnosis').value || '-';
         const adv = document.getElementById('advice').value || '-';
+        const followUp = document.getElementById('follow_up_date').value;
         const showDiag = document.getElementById('chk_diagnosis').checked;
         const showAdv = document.getElementById('chk_advice').checked;
         const showMeds = document.getElementById('chk_meds').checked;
@@ -381,7 +424,8 @@
         if(showMeds) {
             document.querySelectorAll('#med-table tbody tr').forEach(tr => {
                 const name = tr.querySelector('.med-name').value;
-                if(name) medRows += `<tr><td>${name}</td><td>${tr.querySelector('.med-dose').value}</td><td>${tr.querySelector('.med-freq').value}</td><td>${tr.querySelector('.med-dur').value}</td></tr>`;
+                const eye = tr.querySelector('.med-eye').value; // Get Eye
+                if(name) medRows += `<tr><td><strong>${eye}</strong></td><td>${name}</td><td>${tr.querySelector('.med-dose').value}</td><td>${tr.querySelector('.med-freq').value}</td><td>${tr.querySelector('.med-dur').value}</td></tr>`;
             });
         }
 
@@ -394,7 +438,7 @@
         .section h4{margin:0 0 8px 0;color:#004085;text-transform:uppercase;font-size:0.9em;border-bottom:1px solid #eee;padding-bottom:3px;display:inline-block;}
         .content{font-size:1.1em;line-height:1.5;margin-bottom:20px;}
         table{width:100%;border-collapse:collapse;} th,td{border-bottom:1px solid #ddd;padding:8px;text-align:left;} th{background-color:#f8f9fa;}
-        .footer{margin-top:60px;display:flex;justify-content:space-between;align-items:flex-end;}
+        .footer{margin-top:40px;display:flex;justify-content:space-between;align-items:flex-end; border-top: 1px dotted #ccc; padding-top:20px;}
         </style></head>
         <body onload="setTimeout(function(){window.print()}, 800)">
             <div class="header-grid">
@@ -422,7 +466,10 @@
             </div>
             ${showDiag ? `<div class="section"><h4>Diagnosis / ৰোগ নিৰ্ণয়</h4><div class="content">${diag.replace(/\n/g, '<br>')}</div></div>` : ''}
             ${showAdv ? `<div class="section"><h4>Advice / পৰামৰ্শ</h4><div class="content">${adv.replace(/\n/g, '<br>')}</div></div>` : ''}
-            ${showMeds && medRows ? `<div class="section"><h4>Medicines (Rx) / ঔষধ</h4><table><thead><tr><th>Medicine / ঔষধ</th><th>Dose / মাত্ৰা</th><th>Freq / বাৰ</th><th>Duration / সময়</th></tr></thead><tbody>${medRows}</tbody></table></div>` : ''}
+            ${showMeds && medRows ? `<div class="section"><h4>Medicines (Rx) / ঔষধ</h4><table><thead><tr><th>Eye / চকু</th><th>Medicine / ঔষধ</th><th>Dose / মাত্ৰা</th><th>Freq / বাৰ</th><th>Duration / সময়</th></tr></thead><tbody>${medRows}</tbody></table></div>` : ''}
+            
+            ${followUp ? `<div class="section" style="margin-top:10px;"><strong>Next Visit / পৰৱৰ্তী সাক্ষাৎ:</strong> ${new Date(followUp).toLocaleDateString()}</div>` : ''}
+
             <div class="footer">
                 <div style="font-size:0.8em;color:#777;">A Day Eye Care Institution<br>এক দিৱসীয় চকুৰ চিকিৎসা প্ৰতিষ্ঠান</div>
                 <div style="text-align:center;">______________________<br><strong>Signature / স্বাক্ষৰ</strong></div>
