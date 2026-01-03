@@ -7,30 +7,66 @@
     <link rel="stylesheet" href="style.css">
     <style>
         .hidden { display: none; }
-        .row { display: flex; gap: 10px; margin-bottom: 10px; }
+        .row { display: flex; gap: 15px; margin-bottom: 10px; }
         .col { flex: 1; display: flex; flex-direction: column; }
-        textarea { width: 100%; box-sizing: border-box; }
-        input { box-sizing: border-box; width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;}
-        select { padding: 8px; border-radius: 4px; border:1px solid #ccc;}
-        .med-row input { margin-bottom: 5px; }
         
-        /* Styles for Opto Data Display */
-        .opto-readonly-box { background: #f8f9fa; padding: 10px; border-radius: 4px; margin-bottom: 15px; border: 1px dashed #ccc; font-size: 0.9em; }
-        .opto-readonly-row { display: flex; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px solid #eee; }
-        
-        .opto-edit-grid { display: grid; grid-template-columns: 80px 1fr 1fr; gap: 5px; margin-bottom: 5px; align-items: center; }
-        .opto-edit-grid.header { font-weight: bold; background: #eee; padding: 5px; border-radius: 4px; }
-        .small-input { padding: 4px; font-size: 0.9em; border: 1px solid #bbb; width: 100%; box-sizing: border-box; }
-        
-        .print-control { display: flex; align-items: center; gap: 5px; font-size: 0.9em; color: #555; }
-        .template-bar { display: flex; gap: 5px; margin-bottom: 5px; }
-        
-        /* Status Badges */
-        .status-investigation { background: #fff3cd; color: #856404; padding: 2px 5px; border-radius: 4px; font-size:0.8em; }
-        .status-ready { background: #d4edda; color: #155724; padding: 2px 5px; border-radius: 4px; font-size:0.8em; }
+        /* Modern Input Styling */
+        textarea, input, select { 
+            width: 100%; 
+            padding: 10px; 
+            border: 1px solid #ced4da; 
+            border-radius: 5px; 
+            font-size: 0.95em; 
+            font-family: 'Segoe UI', sans-serif;
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+            box-sizing: border-box;
+        }
+        textarea:focus, input:focus, select:focus {
+            border-color: #80bdff;
+            outline: 0;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+        label { font-weight: 600; color: #495057; margin-bottom: 5px; font-size: 0.9em; }
 
-        details.opto-box { background: #fff; border: 1px solid #dee2e6; border-radius: 4px; padding: 10px; margin-bottom: 15px; }
-        details.opto-box summary { cursor: pointer; font-weight: bold; color: #007bff; margin-bottom: 10px; }
+        /* Section Styling */
+        .section-box {
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .section-header {
+            font-size: 1.1em;
+            font-weight: 700;
+            color: #007bff;
+            border-bottom: 2px solid #f0f4f8;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Compact Grids for Data */
+        .compact-grid { display: grid; grid-template-columns: 80px 1fr 1fr; gap: 8px; align-items: center; margin-bottom: 5px; }
+        .compact-grid.header { font-weight: bold; background: #f8f9fa; padding: 8px; border-radius: 4px; color: #555; font-size: 0.85em; }
+        .small-input { padding: 6px; font-size: 0.9em; text-align: center; }
+
+        /* PGP Grid Specifics */
+        .pgp-grid { display: grid; grid-template-columns: 60px 1fr 1fr 1fr 1fr; gap: 5px; align-items: center; margin-bottom: 5px; }
+        
+        .print-control { display: flex; align-items: center; gap: 5px; font-size: 0.85em; color: #666; margin-left: auto; }
+        .status-investigation { background: #fff3cd; color: #856404; padding: 2px 8px; border-radius: 12px; font-size:0.8em; font-weight: bold; }
+        .status-ready { background: #d4edda; color: #155724; padding: 2px 8px; border-radius: 12px; font-size:0.8em; font-weight: bold; }
+        
+        /* Queue Table */
+        table { width: 100%; border-collapse: separate; border-spacing: 0; }
+        th { background: #f8f9fa; color: #495057; padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6; }
+        td { padding: 12px; border-bottom: 1px solid #dee2e6; vertical-align: middle; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover { background-color: #f8f9fa; }
+
     </style>
 </head>
 <body>
@@ -50,10 +86,10 @@
             <h3>My Patients Queue</h3>
             <span style="color:green; font-size:0.8em;">● Live Sync Active</span>
         </div>
-        <table id="doc-queue" style="width:100%; margin-top:10px; border-collapse: collapse;">
+        <table id="doc-queue" style="margin-top:10px;">
             <thead>
-                <tr style="background:#f8f9fa; text-align:left;">
-                    <th style="padding:8px;">OPD</th>
+                <tr>
+                    <th>OPD</th>
                     <th>Patient</th>
                     <th>Type</th>
                     <th>Status</th>
@@ -66,143 +102,182 @@
         </table>
     </section>
 
-    <section id="consult-section" class="card hidden">
-        <div style="background:#e3f2fd; padding:15px; border-left:5px solid #007bff; margin-bottom:15px; display:flex; justify-content:space-between;">
+    <section id="consult-section" class="hidden">
+        
+        <div style="background: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #007bff;">
             <div>
-                <h2 id="p-name" style="margin:0; color:#007bff;">-</h2>
-                <small id="p-info" style="color:#555;">-</small>
+                <h2 id="p-name" style="margin:0; color:#333; font-size: 1.5em;">-</h2>
+                <small id="p-info" style="color:#777; font-size: 0.95em;">PID: -</small>
             </div>
-            <button class="btn ghost" onclick="cancelConsult()">Back</button>
+            <button class="btn ghost" onclick="cancelConsult()">Back to List</button>
         </div>
 
-        <div id="investigation-result-box" class="hidden" style="background:#d4edda; color:#155724; padding:10px; border:1px solid #c3e6cb; border-radius:4px; margin-bottom:15px;">
+        <div id="investigation-result-box" class="hidden" style="background:#d4edda; color:#155724; padding:15px; border:1px solid #c3e6cb; border-radius:8px; margin-bottom:20px;">
             <strong>🧪 Investigation Report Available:</strong>
             <p id="inv-report-text" style="margin:5px 0 0 0; white-space: pre-wrap; font-weight:bold;"></p>
         </div>
         
-        <details class="opto-box" id="opto-details" open>
-            <summary>👁️ Optometrist Findings (Review & Edit)</summary>
-            
-            <div class="opto-readonly-box">
-                <div style="font-weight:bold; color:#555; border-bottom:1px solid #ddd; margin-bottom:5px;">History & Background</div>
-                <div class="opto-readonly-row"><span><strong>Chief Complaint:</strong></span> <span id="disp_cc">-</span></div>
-                <div class="opto-readonly-row"><span><strong>Ocular Hx:</strong></span> <span id="disp_oh">-</span></div>
-                <div class="opto-readonly-row"><span><strong>Systemic / Allergy:</strong></span> <span id="disp_sys">-</span></div>
-                
-                <div style="margin-top:8px; font-weight:bold; color:#555; border-bottom:1px solid #ddd; margin-bottom:5px;">Previous Glasses (PGP)</div>
-                <div class="opto-readonly-row"><span id="disp_pgp_od">OD: -</span> <span id="disp_pgp_os">OS: -</span></div>
-
-                <div style="margin-top:8px; font-weight:bold; color:#555; border-bottom:1px solid #ddd; margin-bottom:5px;">External Exam</div>
-                <div class="opto-readonly-row"><span id="disp_ext_od">OD: -</span> <span id="disp_ext_os">OS: -</span></div>
-            </div>
-
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
-                <div>
-                    <h5 style="margin:0 0 5px 0; border-bottom:1px solid #ccc; color:#007bff;">Visual Acuity & Refraction</h5>
-                    <div class="opto-edit-grid header"><div>Test</div><div>OD</div><div>OS</div></div>
-                    <div class="opto-edit-grid"><div>Dist</div><input id="ed_va_od" class="small-input"><input id="ed_va_os" class="small-input"></div>
-                    <div class="opto-edit-grid"><div>Near</div><input id="ed_va_near_od" class="small-input"><input id="ed_va_near_os" class="small-input"></div>
-                    <div class="opto-edit-grid"><div>PH</div><input id="ed_ph_od" class="small-input"><input id="ed_ph_os" class="small-input"></div>
-
-                    <h5 style="margin:10px 0 5px 0; border-bottom:1px solid #ccc; color:#007bff;">Refraction</h5>
-                    <div class="opto-edit-grid header" style="grid-template-columns: 40px 1fr 1fr 1fr;"><div>Eye</div><div>Sph</div><div>Cyl</div><div>Axis</div></div>
-                    <div class="opto-edit-grid" style="grid-template-columns: 40px 1fr 1fr 1fr;">
-                        <div>OD</div><input id="ed_rx_sph_od" class="small-input"><input id="ed_rx_cyl_od" class="small-input"><input id="ed_rx_ax_od" class="small-input">
-                    </div>
-                    <div class="opto-edit-grid" style="grid-template-columns: 40px 1fr 1fr 1fr;">
-                        <div>OS</div><input id="ed_rx_sph_os" class="small-input"><input id="ed_rx_cyl_os" class="small-input"><input id="ed_rx_ax_os" class="small-input">
-                    </div>
-                    
-                    <div class="opto-edit-grid header" style="margin-top:5px; grid-template-columns: 40px 1fr 1fr;"><div></div><div>Add</div><div>Visual Acuity</div></div>
-                    <div class="opto-edit-grid" style="grid-template-columns: 40px 1fr 1fr;">
-                         <div>OD</div><input id="ed_rx_add_od" class="small-input"><input id="ed_rx_va_od" class="small-input" placeholder="VA">
-                    </div>
-                    <div class="opto-edit-grid" style="grid-template-columns: 40px 1fr 1fr;">
-                         <div>OS</div><input id="ed_rx_add_os" class="small-input"><input id="ed_rx_va_os" class="small-input" placeholder="VA">
-                    </div>
-                </div>
-
-                <div>
-                    <h5 style="margin:0 0 5px 0; border-bottom:1px solid #ccc; color:#007bff;">Slit Lamp Examination</h5>
-                    <div class="opto-edit-grid header"><div>Part</div><div>OD</div><div>OS</div></div>
-                    
-                    <div class="opto-edit-grid"><div>Lids</div><input id="ed_sl_lids_od" class="small-input"><input id="ed_sl_lids_os" class="small-input"></div>
-                    <div class="opto-edit-grid"><div>Conj</div><input id="ed_sl_conj_od" class="small-input"><input id="ed_sl_conj_os" class="small-input"></div>
-                    <div class="opto-edit-grid"><div>Cornea</div><input id="ed_sl_corn_od" class="small-input"><input id="ed_sl_corn_os" class="small-input"></div>
-                    <div class="opto-edit-grid"><div>AC</div><input id="ed_sl_ac_od" class="small-input"><input id="ed_sl_ac_os" class="small-input"></div>
-                    <div class="opto-edit-grid"><div>Pupil</div><input id="ed_sl_pupil_od" class="small-input"><input id="ed_sl_pupil_os" class="small-input"></div>
-                    <div class="opto-edit-grid"><div>Lens</div><input id="ed_sl_lens_od" class="small-input"><input id="ed_sl_lens_os" class="small-input"></div>
-                    
-                    <div class="opto-edit-grid" style="background:#fff3cd; padding:2px;">
-                        <div><strong>IOP</strong></div><input id="ed_iop_od" class="small-input" style="font-weight:bold;"><input id="ed_iop_os" class="small-input" style="font-weight:bold;">
-                    </div>
-                    <div style="margin-top:5px;">
-                        <label style="font-size:0.8em;">Remarks:</label>
-                        <input id="ed_sl_remarks" class="small-input">
-                    </div>
-                </div>
-            </div>
-        </details>
-
         <form onsubmit="event.preventDefault(); window.saveAndFinish();">
-            <div class="row">
-                <div class="col">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                        <label>Diagnosis</label>
-                        <label class="print-control"><input type="checkbox" id="chk_diagnosis" checked> Print on Rx</label>
-                    </div>
-                    <textarea id="diagnosis" rows="2"></textarea>
-                </div>
-            </div>
-
-            <div class="row">
-                <div class="col">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                        <label>Advice / Plan</label>
-                        <label class="print-control"><input type="checkbox" id="chk_advice" checked> Print on Rx</label>
-                    </div>
-                    <div class="template-bar">
-                        <select id="advice_templates" onchange="applyTemplate(this.value)">
-                            <option value="">-- Select Template --</option>
-                        </select>
-                        <button type="button" onclick="addNewTemplate()">+ Add New</button>
-                        <button type="button" onclick="deleteTemplate()" style="color:red;">Del</button>
-                    </div>
-                    <textarea id="advice" rows="4"></textarea>
-                </div>
-            </div>
-
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; margin-bottom:5px;">
-                <h4>Medicines (Rx)</h4>
-                <label class="print-control"><input type="checkbox" id="chk_meds" checked> Print on Rx</label>
-            </div>
             
-            <table id="med-table" style="width:100%;">
-                <thead>
-                    <tr>
-                        <th style="width:90px;">Eye</th>
-                        <th>Medicine</th>
-                        <th>Dose</th>
-                        <th>Freq</th>
-                        <th>Dur</th>
-                        <th style="width:30px;"></th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-            <button type="button" class="btn small" onclick="window.addMedRow()" style="margin-top:5px;">+ Add Med</button>
-
-            <div class="row" style="margin-top:20px; border-top:1px solid #eee; padding-top:15px; align-items:center;">
-                <div class="col narrow">
-                    <label style="margin:0; font-weight:bold;">Follow-up Date:</label>
+            <div class="section-box">
+                <div class="section-header">1. History & Background (Editable)</div>
+                
+                <div class="row">
+                    <div class="col">
+                        <label>Chief Complaint</label>
+                        <textarea id="ed_cc" rows="2" placeholder="e.g. Diminished vision..."></textarea>
+                    </div>
+                    <div class="col">
+                        <label>Ocular History</label>
+                        <textarea id="ed_oh" rows="2" placeholder="e.g. Cat Sx 2020..."></textarea>
+                    </div>
                 </div>
-                <div class="col">
-                    <input type="date" id="follow_up_date" style="max-width: 200px;">
+                <div class="row">
+                    <div class="col">
+                        <label>Systemic Diseases / Allergies</label>
+                        <input id="ed_sys" type="text" placeholder="e.g. Diabetes, HTN...">
+                    </div>
+                </div>
+
+                <div style="margin-top: 15px;">
+                    <label style="color:#007bff;">Previous Glasses (PGP)</label>
+                    <div class="pgp-grid" style="background: #f8f9fa; padding: 5px; border-radius: 4px; font-weight: bold; font-size: 0.85em; text-align: center;">
+                        <div>Eye</div><div>Sph</div><div>Cyl</div><div>Axis</div><div>Add</div>
+                    </div>
+                    <div class="pgp-grid">
+                        <div style="font-weight:bold; text-align:center;">OD</div>
+                        <input id="ed_pgp_sph_od" class="small-input"><input id="ed_pgp_cyl_od" class="small-input"><input id="ed_pgp_ax_od" class="small-input"><input id="ed_pgp_add_od" class="small-input">
+                    </div>
+                    <div class="pgp-grid">
+                        <div style="font-weight:bold; text-align:center;">OS</div>
+                        <input id="ed_pgp_sph_os" class="small-input"><input id="ed_pgp_cyl_os" class="small-input"><input id="ed_pgp_ax_os" class="small-input"><input id="ed_pgp_add_os" class="small-input">
+                    </div>
+                </div>
+
+                <div style="margin-top: 15px;">
+                    <label style="color:#007bff;">External Exam</label>
+                    <div class="row" style="gap: 5px;">
+                        <input id="ed_ext_od" placeholder="OD External">
+                        <input id="ed_ext_os" placeholder="OS External">
+                    </div>
                 </div>
             </div>
 
-            <div class="actions" style="margin-top:20px; display:flex; gap:10px;">
-                <button type="submit" class="btn" style="flex:1;">Save & Finish</button>
+            <div class="section-box">
+                <div class="section-header">2. Clinical Findings</div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:30px;">
+                    
+                    <div>
+                        <h5 style="margin:0 0 10px 0; color:#555;">Visual Acuity</h5>
+                        <div class="compact-grid header"><div>Test</div><div>OD</div><div>OS</div></div>
+                        <div class="compact-grid"><div>Dist</div><input id="ed_va_od" class="small-input"><input id="ed_va_os" class="small-input"></div>
+                        <div class="compact-grid"><div>Near</div><input id="ed_va_near_od" class="small-input"><input id="ed_va_near_os" class="small-input"></div>
+                        <div class="compact-grid"><div>PH</div><input id="ed_ph_od" class="small-input"><input id="ed_ph_os" class="small-input"></div>
+
+                        <h5 style="margin:20px 0 10px 0; color:#555;">Refraction</h5>
+                        <div class="pgp-grid" style="background:#f1f3f5; padding:5px; border-radius:4px; font-weight:bold; font-size:0.8em; text-align:center;">
+                            <div>Eye</div><div>Sph</div><div>Cyl</div><div>Axis</div><div>VA</div>
+                        </div>
+                        <div class="pgp-grid">
+                            <div style="font-weight:bold; text-align:center;">OD</div>
+                            <input id="ed_rx_sph_od" class="small-input"><input id="ed_rx_cyl_od" class="small-input"><input id="ed_rx_ax_od" class="small-input"><input id="ed_rx_va_od" class="small-input">
+                        </div>
+                         <div class="pgp-grid">
+                            <div style="font-weight:bold; text-align:center;">OS</div>
+                            <input id="ed_rx_sph_os" class="small-input"><input id="ed_rx_cyl_os" class="small-input"><input id="ed_rx_ax_os" class="small-input"><input id="ed_rx_va_os" class="small-input">
+                        </div>
+                        <div class="pgp-grid" style="margin-top:5px;">
+                             <div style="font-size:0.8em; font-weight:bold;">Add</div>
+                             <input id="ed_rx_add_od" class="small-input" placeholder="OD Add">
+                             <input id="ed_rx_add_os" class="small-input" placeholder="OS Add">
+                             <div></div><div></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h5 style="margin:0 0 10px 0; color:#555;">Slit Lamp Examination</h5>
+                        <div class="compact-grid header"><div>Part</div><div>OD</div><div>OS</div></div>
+                        
+                        <div class="compact-grid"><div>Lids</div><input id="ed_sl_lids_od" class="small-input"><input id="ed_sl_lids_os" class="small-input"></div>
+                        <div class="compact-grid"><div>Conj</div><input id="ed_sl_conj_od" class="small-input"><input id="ed_sl_conj_os" class="small-input"></div>
+                        <div class="compact-grid"><div>Cornea</div><input id="ed_sl_corn_od" class="small-input"><input id="ed_sl_corn_os" class="small-input"></div>
+                        <div class="compact-grid"><div>AC</div><input id="ed_sl_ac_od" class="small-input"><input id="ed_sl_ac_os" class="small-input"></div>
+                        <div class="compact-grid"><div>Pupil</div><input id="ed_sl_pupil_od" class="small-input"><input id="ed_sl_pupil_os" class="small-input"></div>
+                        <div class="compact-grid"><div>Lens</div><input id="ed_sl_lens_od" class="small-input"><input id="ed_sl_lens_os" class="small-input"></div>
+                        
+                        <div class="compact-grid" style="background:#fff3cd; padding:5px; border-radius:4px; margin-top:5px;">
+                            <div style="font-weight:bold; color:#856404;">IOP</div><input id="ed_iop_od" class="small-input" style="font-weight:bold;"><input id="ed_iop_os" class="small-input" style="font-weight:bold;">
+                        </div>
+                        <div style="margin-top:10px;">
+                            <label style="font-size:0.9em;">Remarks</label>
+                            <input id="ed_sl_remarks" class="small-input" style="text-align:left;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-box" style="border-top: 5px solid #28a745;">
+                <div class="section-header">3. Diagnosis & Treatment</div>
+
+                <div class="row">
+                    <div class="col">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                            <label>Diagnosis</label>
+                            <label class="print-control"><input type="checkbox" id="chk_diagnosis" checked> Print</label>
+                        </div>
+                        <textarea id="diagnosis" rows="2"></textarea>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                            <label>Advice / Plan</label>
+                            <label class="print-control"><input type="checkbox" id="chk_advice" checked> Print</label>
+                        </div>
+                        <div style="display:flex; gap:10px; margin-bottom:5px;">
+                            <select id="advice_templates" onchange="applyTemplate(this.value)">
+                                <option value="">-- Select Template --</option>
+                            </select>
+                            <button type="button" class="btn small" onclick="addNewTemplate()">Add</button>
+                            <button type="button" class="btn small ghost" onclick="deleteTemplate()" style="color:red;">Del</button>
+                        </div>
+                        <textarea id="advice" rows="4"></textarea>
+                    </div>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; margin-bottom:5px;">
+                    <label>Medicines (Rx)</label>
+                    <label class="print-control"><input type="checkbox" id="chk_meds" checked> Print</label>
+                </div>
+                
+                <table id="med-table" style="width:100%; margin-bottom:10px;">
+                    <thead>
+                        <tr>
+                            <th style="width:90px;">Eye</th>
+                            <th>Medicine</th>
+                            <th>Dose</th>
+                            <th>Freq</th>
+                            <th>Dur</th>
+                            <th style="width:30px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <button type="button" class="btn small" onclick="window.addMedRow()">+ Add Medicine</button>
+
+                <div class="row" style="margin-top:25px; padding-top:15px; border-top:1px dashed #ccc; align-items:center;">
+                    <div class="col" style="flex:0 0 150px;">
+                        <label>Follow-up Date:</label>
+                    </div>
+                    <div class="col">
+                        <input type="date" id="follow_up_date" style="max-width: 200px;">
+                    </div>
+                </div>
+            </div>
+
+            <div style="display:flex; gap:15px; margin-bottom:50px;">
+                <button type="submit" class="btn" style="flex:1; padding:15px; font-size:1.1em;">Save & Finish</button>
                 <button type="button" class="btn" onclick="window.sendToInvestigation()" style="background-color: #ffc107; color: #000; border:none; flex:1;">🔬 Order Investigation</button>
                 <button type="button" class="btn" onclick="window.printRx()" style="background-color: #17a2b8; color: white; border:none; flex:1;">💾 Save & 🖨️ Print Rx</button>
             </div>
@@ -312,6 +387,7 @@
             const tr = document.createElement('tr');
             let statusBadge = v.status;
             if(v.status === 'Report Ready') statusBadge = `<span class="status-ready">Report Ready</span>`;
+            if(v.status === 'Investigation') statusBadge = `<span class="status-investigation">Investigation</span>`;
             if(v.status === 'With Doctor') tr.style.background = "#e8f0fe";
             
             tr.innerHTML = `<td>${v.opdId}</td><td><strong>${v.patientName}</strong><br><small>${v.age}Y/${v.gender}</small></td><td>${v.type}</td><td>${statusBadge}</td><td><button class="btn small" onclick="window.startConsult('${v.opdId}')">${v.status === 'With Doctor' ? 'Resume' : 'Consult'}</button></td>`;
@@ -341,28 +417,35 @@
         const d = currentVisit.optoData || {};
         const safe = (obj, path) => path.split('.').reduce((acc, part) => acc && acc[part], obj) || '';
 
-        // 1. Read Only Section
-        document.getElementById('disp_cc').innerText = safe(d, 'history.complaint') || '-';
-        document.getElementById('disp_oh').innerText = safe(d, 'history.ocular_hx') || '-';
-        document.getElementById('disp_sys').innerText = (safe(d, 'history.systemic') || '-') + ' / ' + (safe(d, 'history.allergies') || '-');
+        // 1. History & PGP (NOW MAPPED TO INPUTS)
+        document.getElementById('ed_cc').value = safe(d, 'history.complaint');
+        document.getElementById('ed_oh').value = safe(d, 'history.ocular_hx');
+        // Combine systemic/allergy for display if separate, or map directly if you prefer separate fields
+        let sys = safe(d, 'history.systemic');
+        if(safe(d, 'history.allergies')) sys += " / " + safe(d, 'history.allergies');
+        document.getElementById('ed_sys').value = sys;
         
-        document.getElementById('disp_pgp_od').innerText = `OD: ${safe(d, 'pgp.od.sph')}/${safe(d, 'pgp.od.cyl')} x${safe(d, 'pgp.od.ax')} Add ${safe(d, 'pgp.od.add')}`;
-        document.getElementById('disp_pgp_os').innerText = `OS: ${safe(d, 'pgp.os.sph')}/${safe(d, 'pgp.os.cyl')} x${safe(d, 'pgp.os.ax')} Add ${safe(d, 'pgp.os.add')}`;
-        
-        const extOD = `${safe(d, 'external.od.ext')}, EOM:${safe(d, 'external.od.eom')}, CT:${safe(d, 'external.od.ct_dist')}`;
-        const extOS = `${safe(d, 'external.os.ext')}, EOM:${safe(d, 'external.os.eom')}, CT:${safe(d, 'external.os.ct_dist')}`;
-        document.getElementById('disp_ext_od').innerText = "OD: " + extOD;
-        document.getElementById('disp_ext_os').innerText = "OS: " + extOS;
+        document.getElementById('ed_pgp_sph_od').value = safe(d, 'pgp.od.sph');
+        document.getElementById('ed_pgp_cyl_od').value = safe(d, 'pgp.od.cyl');
+        document.getElementById('ed_pgp_ax_od').value = safe(d, 'pgp.od.ax');
+        document.getElementById('ed_pgp_add_od').value = safe(d, 'pgp.od.add');
 
-        // 2. Editable Section
-        // VA
+        document.getElementById('ed_pgp_sph_os').value = safe(d, 'pgp.os.sph');
+        document.getElementById('ed_pgp_cyl_os').value = safe(d, 'pgp.os.cyl');
+        document.getElementById('ed_pgp_ax_os').value = safe(d, 'pgp.os.ax');
+        document.getElementById('ed_pgp_add_os').value = safe(d, 'pgp.os.add');
+        
+        document.getElementById('ed_ext_od').value = safe(d, 'external.od.ext');
+        document.getElementById('ed_ext_os').value = safe(d, 'external.os.ext');
+
+        // 2. Vision & Refraction
         document.getElementById('ed_va_od').value = safe(d, 'va.od.dist');
         document.getElementById('ed_va_os').value = safe(d, 'va.os.dist');
         document.getElementById('ed_ph_od').value = safe(d, 'va.od.ph');
         document.getElementById('ed_ph_os').value = safe(d, 'va.os.ph');
         document.getElementById('ed_va_near_od').value = safe(d, 'va.od.near');
         document.getElementById('ed_va_near_os').value = safe(d, 'va.os.near');
-        // Refraction
+
         document.getElementById('ed_rx_sph_od').value = safe(d, 'refraction.od.sph');
         document.getElementById('ed_rx_cyl_od').value = safe(d, 'refraction.od.cyl');
         document.getElementById('ed_rx_ax_od').value = safe(d, 'refraction.od.ax');
@@ -375,25 +458,21 @@
         document.getElementById('ed_rx_add_os').value = safe(d, 'refraction.os.add');
         document.getElementById('ed_rx_va_os').value = safe(d, 'refraction.os.va');
         
-        // Slit Lamp (COMPLETE MAPPING)
+        // 3. Slit Lamp
         document.getElementById('ed_sl_lids_od').value = safe(d, 'slitlamp.od.lids');
-        document.getElementById('ed_sl_lids_os').value = safe(d, 'slitlamp.os.lids');
-        
-        document.getElementById('ed_sl_conj_od').value = safe(d, 'slitlamp.od.conj'); // Fixed missing
-        document.getElementById('ed_sl_conj_os').value = safe(d, 'slitlamp.os.conj'); // Fixed missing
-        
+        document.getElementById('ed_sl_conj_od').value = safe(d, 'slitlamp.od.conj');
         document.getElementById('ed_sl_corn_od').value = safe(d, 'slitlamp.od.corn');
-        document.getElementById('ed_sl_corn_os').value = safe(d, 'slitlamp.os.corn');
-        
-        document.getElementById('ed_sl_ac_od').value = safe(d, 'slitlamp.od.ac'); // Fixed missing
-        document.getElementById('ed_sl_ac_os').value = safe(d, 'slitlamp.os.ac'); // Fixed missing
-        
-        document.getElementById('ed_sl_pupil_od').value = safe(d, 'slitlamp.od.pupil'); // Fixed missing
-        document.getElementById('ed_sl_pupil_os').value = safe(d, 'slitlamp.os.pupil'); // Fixed missing
-        
+        document.getElementById('ed_sl_ac_od').value = safe(d, 'slitlamp.od.ac');
+        document.getElementById('ed_sl_pupil_od').value = safe(d, 'slitlamp.od.pupil');
         document.getElementById('ed_sl_lens_od').value = safe(d, 'slitlamp.lens_od');
-        document.getElementById('ed_sl_lens_os').value = safe(d, 'slitlamp.lens_os');
         document.getElementById('ed_iop_od').value = safe(d, 'slitlamp.iop_od');
+
+        document.getElementById('ed_sl_lids_os').value = safe(d, 'slitlamp.os.lids');
+        document.getElementById('ed_sl_conj_os').value = safe(d, 'slitlamp.os.conj');
+        document.getElementById('ed_sl_corn_os').value = safe(d, 'slitlamp.os.corn');
+        document.getElementById('ed_sl_ac_os').value = safe(d, 'slitlamp.os.ac');
+        document.getElementById('ed_sl_pupil_os').value = safe(d, 'slitlamp.os.pupil');
+        document.getElementById('ed_sl_lens_os').value = safe(d, 'slitlamp.lens_os');
         document.getElementById('ed_iop_os').value = safe(d, 'slitlamp.iop_os');
         document.getElementById('ed_sl_remarks').value = safe(d, 'slitlamp.remarks');
 
@@ -438,6 +517,26 @@
         let updatedOpto = currentVisit.optoData || {};
         const set = (obj, path, val) => { const k = path.split('.'); let t = obj; k.slice(0,-1).forEach(key=>{ if(!t[key])t[key]={}; t=t[key]; }); t[k.pop()] = val; };
         
+        // 1. History
+        set(updatedOpto, 'history.complaint', document.getElementById('ed_cc').value);
+        set(updatedOpto, 'history.ocular_hx', document.getElementById('ed_oh').value);
+        set(updatedOpto, 'history.systemic', document.getElementById('ed_sys').value);
+
+        // 2. PGP & External
+        set(updatedOpto, 'pgp.od.sph', document.getElementById('ed_pgp_sph_od').value);
+        set(updatedOpto, 'pgp.od.cyl', document.getElementById('ed_pgp_cyl_od').value);
+        set(updatedOpto, 'pgp.od.ax', document.getElementById('ed_pgp_ax_od').value);
+        set(updatedOpto, 'pgp.od.add', document.getElementById('ed_pgp_add_od').value);
+
+        set(updatedOpto, 'pgp.os.sph', document.getElementById('ed_pgp_sph_os').value);
+        set(updatedOpto, 'pgp.os.cyl', document.getElementById('ed_pgp_cyl_os').value);
+        set(updatedOpto, 'pgp.os.ax', document.getElementById('ed_pgp_ax_os').value);
+        set(updatedOpto, 'pgp.os.add', document.getElementById('ed_pgp_add_os').value);
+
+        set(updatedOpto, 'external.od.ext', document.getElementById('ed_ext_od').value);
+        set(updatedOpto, 'external.os.ext', document.getElementById('ed_ext_os').value);
+        
+        // 3. Vision
         set(updatedOpto, 'va.od.dist', document.getElementById('ed_va_od').value);
         set(updatedOpto, 'va.os.dist', document.getElementById('ed_va_os').value);
         set(updatedOpto, 'va.od.ph', document.getElementById('ed_ph_od').value);
@@ -445,6 +544,7 @@
         set(updatedOpto, 'va.od.near', document.getElementById('ed_va_near_od').value);
         set(updatedOpto, 'va.os.near', document.getElementById('ed_va_near_os').value);
 
+        // 4. Refraction
         set(updatedOpto, 'refraction.od.sph', document.getElementById('ed_rx_sph_od').value);
         set(updatedOpto, 'refraction.od.cyl', document.getElementById('ed_rx_cyl_od').value);
         set(updatedOpto, 'refraction.od.ax', document.getElementById('ed_rx_ax_od').value);
@@ -457,6 +557,7 @@
         set(updatedOpto, 'refraction.os.add', document.getElementById('ed_rx_add_os').value);
         set(updatedOpto, 'refraction.os.va', document.getElementById('ed_rx_va_os').value);
 
+        // 5. Slit Lamp
         set(updatedOpto, 'slitlamp.od.lids', document.getElementById('ed_sl_lids_od').value);
         set(updatedOpto, 'slitlamp.od.conj', document.getElementById('ed_sl_conj_od').value);
         set(updatedOpto, 'slitlamp.od.corn', document.getElementById('ed_sl_corn_od').value);
