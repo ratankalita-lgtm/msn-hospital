@@ -75,7 +75,7 @@
             <div id="opto-content" class="opto-grid-view"></div>
         </details>
 
-        <form onsubmit="event.preventDefault(); window.saveConsult();">
+        <form onsubmit="event.preventDefault(); window.saveAndFinish();">
             <div class="row">
                 <div class="col">
                     <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
@@ -111,7 +111,8 @@
             <table id="med-table" style="width:100%;">
                 <thead>
                     <tr>
-                        <th style="width:90px;">Eye</th> <th>Medicine</th>
+                        <th style="width:90px;">Eye</th>
+                        <th>Medicine</th>
                         <th>Dose</th>
                         <th>Freq</th>
                         <th>Dur</th>
@@ -133,7 +134,7 @@
 
             <div class="actions" style="margin-top:20px; display:flex; gap:10px;">
                 <button type="submit" class="btn" style="flex:1;">Save & Finish</button>
-                <button type="button" class="btn" onclick="window.printRx()" style="background-color: #17a2b8; color: white; border:none; flex:1;">🖨️ Print Rx</button>
+                <button type="button" class="btn" onclick="window.printRx()" style="background-color: #17a2b8; color: white; border:none; flex:1;">💾 Save & 🖨️ Print Rx</button>
             </div>
         </form>
     </section>
@@ -332,11 +333,10 @@
         `;
         document.getElementById('opto-details').open = true;
         
-        // Restore previous draft values if any
         const docData = currentVisit.doctorData || {};
         document.getElementById('diagnosis').value = docData.diagnosis || "";
         document.getElementById('advice').value = docData.advice || "";
-        document.getElementById('follow_up_date').value = docData.followUp || ""; // LOAD FOLLOW UP
+        document.getElementById('follow_up_date').value = docData.followUp || "";
         
         document.querySelector('#med-table tbody').innerHTML = "";
         if(docData.meds && docData.meds.length > 0) {
@@ -352,11 +352,9 @@
         currentVisit = null;
     };
 
-    // --- ADD MEDICINE ROW (UPDATED with Eye Select) ---
     window.addMedRow = function(data = {}) {
         const tbody = document.querySelector('#med-table tbody');
         const tr = document.createElement('tr');
-        // Added Eye Select with OD/OS/OU options
         tr.innerHTML = `
             <td>
                 <select class="med-eye" style="width:100%;font-weight:bold;">
@@ -372,18 +370,19 @@
             <td><input class="med-dur" placeholder="Days" value="${data.duration||''}"></td>
             <td><button type="button" onclick="this.closest('tr').remove()" style="color:red;border:none;background:none;font-weight:bold;">X</button></td>
         `;
-        if(data.eye) tr.querySelector('.med-eye').value = data.eye; // Set eye if exists
+        if(data.eye) tr.querySelector('.med-eye').value = data.eye;
         tbody.appendChild(tr);
     };
 
-    window.saveConsult = async function() {
+    // --- NEW: Helper to Save Data (Used by both Save button AND Print button) ---
+    async function performSave() {
         if(!currentVisit) return;
         const meds = [];
         document.querySelectorAll('#med-table tbody tr').forEach(tr => {
             const name = tr.querySelector('.med-name').value;
             if(name) {
                 meds.push({ 
-                    eye: tr.querySelector('.med-eye').value, // Save Eye
+                    eye: tr.querySelector('.med-eye').value,
                     name, 
                     dose: tr.querySelector('.med-dose').value, 
                     freq: tr.querySelector('.med-freq').value, 
@@ -392,27 +391,39 @@
             }
         });
 
-        const followUp = document.getElementById('follow_up_date').value; // Save Date
+        const followUp = document.getElementById('follow_up_date').value;
 
+        await updateDoc(doc(db, "visits", currentVisit.firebaseId), {
+            doctorData: { 
+                diagnosis: document.getElementById('diagnosis').value, 
+                advice: document.getElementById('advice').value, 
+                followUp: followUp,
+                meds 
+            },
+            status: "Completed" // Mark as completed
+        });
+    }
+
+    // --- Button 1: Save & Finish ---
+    window.saveAndFinish = async function() {
         try {
-            const btn = document.querySelector('button[type="submit"]'); btn.innerText = "Saving...";
-            await updateDoc(doc(db, "visits", currentVisit.firebaseId), {
-                doctorData: { 
-                    diagnosis: document.getElementById('diagnosis').value, 
-                    advice: document.getElementById('advice').value, 
-                    followUp: followUp,
-                    meds 
-                },
-                status: "Completed"
-            });
-            alert("Saved!"); window.cancelConsult(); btn.innerText = "Save & Finish";
+            const btn = document.querySelector('button[type="submit"]'); 
+            btn.innerText = "Saving...";
+            await performSave();
+            alert("Saved Successfully!"); 
+            window.cancelConsult(); 
+            btn.innerText = "Save & Finish";
         } catch(e) { alert("Error: " + e.message); }
     };
 
-    window.printRx = function() {
+    // --- Button 2: Print Rx (Now AUTO-SAVES first) ---
+    window.printRx = async function() {
         if(!currentVisit) return;
-        const dr = doctorProfiles[loggedInDoctor] || { qual: "", reg: "", desig: "" };
         
+        // AUTO-SAVE BEFORE PRINTING
+        try { await performSave(); } catch(e) { console.error("Auto-save failed", e); }
+
+        const dr = doctorProfiles[loggedInDoctor] || { qual: "", reg: "", desig: "" };
         const diag = document.getElementById('diagnosis').value || '-';
         const adv = document.getElementById('advice').value || '-';
         const followUp = document.getElementById('follow_up_date').value;
@@ -424,7 +435,7 @@
         if(showMeds) {
             document.querySelectorAll('#med-table tbody tr').forEach(tr => {
                 const name = tr.querySelector('.med-name').value;
-                const eye = tr.querySelector('.med-eye').value; // Get Eye
+                const eye = tr.querySelector('.med-eye').value;
                 if(name) medRows += `<tr><td><strong>${eye}</strong></td><td>${name}</td><td>${tr.querySelector('.med-dose').value}</td><td>${tr.querySelector('.med-freq').value}</td><td>${tr.querySelector('.med-dur').value}</td></tr>`;
             });
         }
@@ -455,7 +466,7 @@
                 <div style="flex:1;">
                     <strong>Name / নাম:</strong> ${currentVisit.patientName}<br>
                     <strong>PID:</strong> ${currentVisit.pid} &nbsp;|&nbsp; <strong>Age/Sex:</strong> ${currentVisit.age}Y/${currentVisit.gender}<br>
-                    <strong>Date / তাৰিখ:</strong> ${new Date().toLocaleDateString()}
+                    <strong>Date / তাৰিখ:</strong> ${new Date().toLocaleDateString('en-IN')}
                 </div>
                 <div style="flex:1;text-align:right;">
                     <strong style="font-size:1.1em;color:#004085;">${loggedInDoctor}</strong><br>
@@ -468,7 +479,7 @@
             ${showAdv ? `<div class="section"><h4>Advice / পৰামৰ্শ</h4><div class="content">${adv.replace(/\n/g, '<br>')}</div></div>` : ''}
             ${showMeds && medRows ? `<div class="section"><h4>Medicines (Rx) / ঔষধ</h4><table><thead><tr><th>Eye / চকু</th><th>Medicine / ঔষধ</th><th>Dose / মাত্ৰা</th><th>Freq / বাৰ</th><th>Duration / সময়</th></tr></thead><tbody>${medRows}</tbody></table></div>` : ''}
             
-            ${followUp ? `<div class="section" style="margin-top:10px;"><strong>Next Visit / পৰৱৰ্তী সাক্ষাৎ:</strong> ${new Date(followUp).toLocaleDateString()}</div>` : ''}
+            ${followUp ? `<div class="section" style="margin-top:20px; border:2px solid #000; padding:10px; display:inline-block;"><strong>Next Visit / পৰৱৰ্তী সাক্ষাৎ:</strong> <span style="font-size:1.2em; font-weight:bold;">${new Date(followUp).toLocaleDateString('en-IN')}</span></div>` : ''}
 
             <div class="footer">
                 <div style="font-size:0.8em;color:#777;">A Day Eye Care Institution<br>এক দিৱসীয় চকুৰ চিকিৎসা প্ৰতিষ্ঠান</div>
