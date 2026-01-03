@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical Records - MSN Hospital</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Specific Styles for Records Viewer */
+        .search-container { max-width: 600px; margin: 0 auto 20px auto; display: flex; gap: 10px; }
+        .patient-result { background: white; padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; transition: 0.2s; }
+        .patient-result:hover { background: #f1f8ff; }
+        
+        .timeline { border-left: 3px solid #007bff; margin-left: 20px; padding-left: 20px; margin-top: 20px; }
+        .visit-card { background: white; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); overflow: hidden; }
+        .visit-header { background: #f8f9fa; padding: 12px 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .visit-header:hover { background: #e2e6ea; }
+        .visit-body { padding: 20px; display: none; }
+        .visit-body.open { display: block; }
+        
+        .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 10px; }
+        .section-title { font-weight: bold; color: #007bff; border-bottom: 2px solid #eee; padding-bottom: 5px; margin-bottom: 10px; font-size: 0.9em; text-transform: uppercase; }
+        .field-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.95em; border-bottom: 1px dashed #f0f0f0; padding-bottom: 2px; }
+        
+        .badge { font-size: 0.8em; padding: 3px 8px; border-radius: 10px; color: white; }
+        .badge.doc { background-color: #17a2b8; }
+        .badge.opto { background-color: #fd7e14; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header class="hospital-header">
+        <img src="logo.png" alt="Logo" class="hospital-logo" onerror="this.style.display='none'">
+        <div>
+            <h2>Medical Records Archive</h2>
+            <p class="text-muted">Search Patient History & Previous Findings</p>
+        </div>
+        <a href="index.html" class="btn ghost small" style="margin-left:auto; text-decoration:none;">Back to Home</a>
+    </header>
+
+    <div class="search-container">
+        <input type="text" id="search_input" placeholder="Enter Name, Phone, or PID..." style="padding:12px;">
+        <button class="btn" onclick="searchPatient()">Search</button>
+    </div>
+
+    <div id="results-area" class="card hidden">
+        <h4>Select Patient:</h4>
+        <div id="patient-list"></div>
+    </div>
+
+    <div id="timeline-area" class="hidden">
+        <div class="card" style="border-left: 5px solid #28a745;">
+            <h2 id="t-name" style="margin:0; color:#28a745;">-</h2>
+            <p id="t-info" style="color:#666; margin:5px 0;">-</p>
+        </div>
+        <div id="timeline-feed" class="timeline"></div>
+    </div>
+
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBne_-4FcG5DjtUDVwdd1K-XDsHjX0JOEo",
+        authDomain: "msn-hospital.firebaseapp.com",
+        projectId: "msn-hospital",
+        storageBucket: "msn-hospital.firebasestorage.app",
+        messagingSenderId: "525072218332",
+        appId: "1:525072218332:web:5940ec924f59db675adc19",
+        measurementId: "G-FXXZ7STWDJ"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let allPatients = [];
+
+    // Pre-load patients for fast search
+    window.onload = async function() {
+        const q = query(collection(db, "patients"));
+        const snap = await getDocs(q);
+        allPatients = snap.docs.map(doc => doc.data());
+    };
+
+    window.searchPatient = function() {
+        const term = document.getElementById('search_input').value.trim().toLowerCase();
+        if(!term) return;
+
+        const results = allPatients.filter(p => 
+            p.name.toLowerCase().includes(term) || 
+            p.phone.includes(term) || 
+            p.id.toLowerCase().includes(term)
+        );
+
+        const list = document.getElementById('patient-list');
+        list.innerHTML = '';
+        
+        if(results.length === 0) {
+            list.innerHTML = '<div style="padding:10px; color:red;">No patient found.</div>';
+        } else {
+            results.forEach(p => {
+                const div = document.createElement('div');
+                div.className = 'patient-result';
+                div.innerHTML = `<strong>${p.name}</strong> (${p.age}Y/${p.gender}) <br> <small>PID: ${p.id} | Phone: ${p.phone}</small>`;
+                div.onclick = () => loadVisits(p);
+                list.appendChild(div);
+            });
+        }
+        document.getElementById('results-area').classList.remove('hidden');
+        document.getElementById('timeline-area').classList.add('hidden');
+    };
+
+    window.loadVisits = async function(patient) {
+        document.getElementById('results-area').classList.add('hidden');
+        document.getElementById('timeline-area').classList.remove('hidden');
+        
+        document.getElementById('t-name').innerText = patient.name;
+        document.getElementById('t-info').innerText = `PID: ${patient.id} | ${patient.address || ''}`;
+        
+        const feed = document.getElementById('timeline-feed');
+        feed.innerHTML = '<div style="padding:20px;">Loading History...</div>';
+
+        // Query Visits
+        const q = query(collection(db, "visits"), where("pid", "==", patient.id));
+        const snap = await getDocs(q);
+        const visits = snap.docs.map(doc => doc.data()).sort((a,b) => b.timestamp - a.timestamp);
+
+        feed.innerHTML = '';
+        if(visits.length === 0) {
+            feed.innerHTML = '<p>No previous visits found.</p>';
+            return;
+        }
+
+        visits.forEach(v => {
+            const date = v.date || v.isoDate;
+            const d = v.doctorData || {};
+            const o = v.optoData || {};
+            const safe = (obj, path) => path.split('.').reduce((acc, part) => acc && acc[part], obj) || '-';
+
+            const html = `
+            <div class="visit-card">
+                <div class="visit-header" onclick="this.nextElementSibling.classList.toggle('open')">
+                    <div>
+                        <strong>${date}</strong> <span class="badge doc">${v.type}</span>
+                        <div style="font-size:0.85em; color:#555;">${v.opdId} | Doc: ${v.doctor}</div>
+                    </div>
+                    <div style="font-size:1.2em;">Details ▼</div>
+                </div>
+                <div class="visit-body">
+                    
+                    <div class="data-grid">
+                        <div style="background:#f4f9ff; padding:10px; border-radius:5px;">
+                            <div class="section-title">🩺 Doctor's Notes</div>
+                            <div><strong>Diagnosis:</strong> ${d.diagnosis || '-'}</div>
+                            <div style="margin-top:5px;"><strong>Advice:</strong> <pre style="white-space:pre-wrap; font-family:inherit; margin:0;">${d.advice || '-'}</pre></div>
+                            
+                            <div style="margin-top:10px; font-weight:bold; font-size:0.9em;">Rx (Medicines):</div>
+                            ${(d.meds || []).map(m => `<div style="padding-left:10px; border-left:2px solid #ccc; margin-top:2px;">${m.name} - ${m.dose} (${m.freq})</div>`).join('') || 'None'}
+                        </div>
+
+                        <div style="background:#fff9e6; padding:10px; border-radius:5px;">
+                            <div class="section-title">👁️ Optometry Data</div>
+                            <div class="field-row"><span>CO:</span> <span>${safe(o, 'history.complaint')}</span></div>
+                            <div class="field-row"><span>Vision (Unaided):</span> <span>OD: ${safe(o, 'va.od.dist')} | OS: ${safe(o, 'va.os.dist')}</span></div>
+                            
+                            <div style="margin-top:5px; font-weight:bold; color:#d63384;">Refraction:</div>
+                            <div class="field-row"><span>OD:</span> <span>${safe(o, 'refraction.od.sph')} / ${safe(o, 'refraction.od.cyl')} x ${safe(o, 'refraction.od.ax')}</span></div>
+                            <div class="field-row"><span>OS:</span> <span>${safe(o, 'refraction.os.sph')} / ${safe(o, 'refraction.os.cyl')} x ${safe(o, 'refraction.os.ax')}</span></div>
+                            
+                            <div style="margin-top:5px; font-weight:bold;">Slit Lamp:</div>
+                            <div class="field-row"><span>IOP:</span> <span>${safe(o, 'slitlamp.iop_od')} / ${safe(o, 'slitlamp.iop_os')}</span></div>
+                            <div class="field-row"><span>Lens:</span> <span>${safe(o, 'slitlamp.lens_od')} / ${safe(o, 'slitlamp.lens_os')}</span></div>
+                            <div style="font-size:0.9em; color:#555; margin-top:3px;"><em>Note: ${safe(o, 'slitlamp.remarks')}</em></div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>`;
+            feed.insertAdjacentHTML('beforeend', html);
+        });
+    };
+</script>
+
+</body>
+</html>

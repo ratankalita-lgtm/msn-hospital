@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reception - MSN Hospital</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Specific Styles for Reception */
+        #search-result li { cursor: pointer; transition: background 0.2s; padding: 10px; border-bottom: 1px solid #eee; }
+        #search-result li:hover { background-color: #e3f2fd; }
+        .search-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end; }
+        
+        /* Loading Spinner */
+        .loading { color: #007bff; font-weight: bold; text-align: center; padding: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header class="hospital-header">
+        <img src="logo.png" alt="Logo" class="hospital-logo" onerror="this.style.display='none'">
+        <div class="hospital-info">
+            <h2>MSN Cataract and IOL Hospital</h2>
+            <p class="text-muted">Tilak Deka Road, Nagaon | Reception Desk</p>
+        </div>
+    </header>
+
+    <div class="stats-row">
+        <div class="stat-card blue">
+            <span class="stat-number" id="stat-total">0</span>
+            <span class="stat-label">Total Patients (DB)</span>
+        </div>
+        <div class="stat-card green">
+            <span class="stat-number" id="stat-today">0</span>
+            <span class="stat-label">Today's OPD</span>
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px;">
+        
+        <div style="display:flex; flex-direction:column; gap:20px;">
+            
+            <section class="card" style="border-top: 4px solid #ffc107;">
+                <h3>1. Search Patient</h3>
+                <p class="text-muted" style="margin-bottom:10px;">Search by <strong>Patient ID</strong> (e.g., P0001) or <strong>Phone</strong>.</p>
+                <div class="search-grid">
+                    <div>
+                        <label>Patient ID</label>
+                        <input id="search_pid" type="text" placeholder="P000..." style="text-transform: uppercase;" />
+                    </div>
+                    <div>
+                        <label>Phone</label>
+                        <input id="search_phone" type="number" placeholder="98..." />
+                    </div>
+                    <button id="searchBtn" class="btn secondary">Find</button>
+                </div>
+                <div id="search-result" style="margin-top:10px; max-height: 200px; overflow-y:auto;"></div>
+            </section>
+
+            <section class="card" style="border-top: 4px solid #007bff;">
+                <h3 style="margin-bottom: 15px;">2. Create Visit (OPD)</h3>
+                <form id="registrationForm">
+                    <div class="row">
+                        <div class="col">
+                            <label>Patient ID (Auto)</label>
+                            <input id="patient_id" type="text" placeholder="New Patient" readonly style="background:#e8f0fe; color:#1967d2; font-weight:bold; border:1px solid #1967d2;" />
+                        </div>
+                        <div class="col">
+                            <label>Date of Birth</label>
+                            <input id="dob" type="date" />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col wide">
+                            <label>Full Name <span style="color:red">*</span></label>
+                            <input id="name" type="text" required placeholder="Enter Name" autocomplete="off" />
+                        </div>
+                        <div class="col">
+                            <label>Age</label>
+                            <input id="age" type="number" placeholder="0" style="width:60px;" />
+                        </div>
+                        <div class="col">
+                            <label>Sex</label>
+                            <select id="gender"><option>Male</option><option>Female</option><option>Other</option></select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col wide">
+                            <label>Guardian / Care of</label>
+                            <input id="guardian" type="text" placeholder="S/O, W/O..." />
+                        </div>
+                        <div class="col">
+                            <label>Phone <span style="color:red">*</span></label>
+                            <input id="phone" type="tel" required maxlength="10" />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col narrow">
+                            <label>Pin</label>
+                            <input id="pincode" type="text" placeholder="782..." />
+                        </div>
+                        <div class="col">
+                            <label>District</label>
+                            <input id="district" type="text" value="Nagaon" />
+                        </div>
+                        <div class="col wide">
+                            <label>Address</label>
+                            <input id="address" type="text" list="local-places" placeholder="Village/Town" />
+                            <datalist id="local-places"></datalist>
+                        </div>
+                    </div>
+
+                    <div class="row" style="background: #e9f7ef; padding: 10px; border: 1px solid #c3e6cb; border-radius:4px;">
+                        <div class="col wide">
+                            <label style="color:#155724; font-weight:bold;">Assign Doctor</label>
+                            <select id="assigned_doctor" required style="border:1px solid #28a745;">
+                                <option value="">Loading...</option>
+                            </select>
+                        </div>
+                        <div class="col">
+                            <label>Type</label>
+                            <select id="visit_type">
+                                <option>New Case</option>
+                                <option>Review / Follow-up</option>
+                                <option>Surgery</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="actions" style="margin-top:15px;">
+                        <button type="submit" class="btn" id="saveBtn">Generate OPD Slip</button>
+                        <button type="button" id="clearBtn" class="btn ghost">Reset Form</button>
+                    </div>
+                </form>
+            </section>
+        </div>
+
+        <section class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3>Today's OPD List</h3>
+                <div style="font-size:0.8em; color:green; display:flex; align-items:center; gap:5px;">
+                    <span style="height:8px; width:8px; background:green; border-radius:50%; display:inline-block;"></span>
+                    Live Sync Active
+                </div>
+            </div>
+            
+            <table id="patients-table" style="margin-top:15px;">
+                <thead>
+                    <tr>
+                        <th style="width: 100px;">OPD No.</th>
+                        <th style="width: 80px;">PID</th>
+                        <th>Name</th>
+                        <th>Doctor</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="6" class="loading">Connecting to Cloud...</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+    </div>
+    <div id="toast"></div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, updateDoc, doc, onSnapshot, query, where, getDocs } 
+    from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    // YOUR KEYS (From previous chat)
+    const firebaseConfig = {
+        apiKey: "AIzaSyBne_-4FcG5DjtUDVwdd1K-XDsHjX0JOEo",
+        authDomain: "msn-hospital.firebaseapp.com",
+        projectId: "msn-hospital",
+        storageBucket: "msn-hospital.firebasestorage.app",
+        messagingSenderId: "525072218332",
+        appId: "1:525072218332:web:5940ec924f59db675adc19",
+        measurementId: "G-FXXZ7STWDJ"
+    };
+    // Initialize
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Make available to app.js
+    window.db = db;
+    window.collection = collection;
+    window.addDoc = addDoc;
+    window.updateDoc = updateDoc;
+    window.doc = doc;
+    window.onSnapshot = onSnapshot;
+    window.query = query;
+    window.where = where;
+    window.getDocs = getDocs;
+
+    console.log("Firebase Connected");
+</script>
+
+<script type="module" src="app.js"></script>
+
+</body>
+</html>
