@@ -6,12 +6,9 @@
     <title>Reception - MSN Hospital</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* Specific Styles for Reception */
         #search-result li { cursor: pointer; transition: background 0.2s; padding: 10px; border-bottom: 1px solid #eee; }
         #search-result li:hover { background-color: #e3f2fd; }
         .search-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end; }
-        
-        /* Loading Spinner */
         .loading { color: #007bff; font-weight: bold; text-align: center; padding: 10px; }
     </style>
 </head>
@@ -43,7 +40,7 @@
             
             <section class="card" style="border-top: 4px solid #ffc107;">
                 <h3>1. Search Patient</h3>
-                <p class="text-muted" style="margin-bottom:10px;">Search by <strong>Patient ID</strong> (e.g., P0001) or <strong>Phone</strong>.</p>
+                <p class="text-muted" style="margin-bottom:10px;">Search by <strong>Patient ID</strong> or <strong>Phone</strong> to edit/visit.</p>
                 <div class="search-grid">
                     <div>
                         <label>Patient ID</label>
@@ -59,7 +56,7 @@
             </section>
 
             <section class="card" style="border-top: 4px solid #007bff;">
-                <h3 style="margin-bottom: 15px;">2. Create Visit (OPD)</h3>
+                <h3 style="margin-bottom: 15px;">2. Patient Details</h3>
                 <form id="registrationForm">
                     <div class="row">
                         <div class="col">
@@ -129,10 +126,15 @@
                                 <option>Surgery</option>
                             </select>
                         </div>
+                        <div class="col">
+                            <label>Reg. Fee (₹)</label>
+                            <input id="fee" type="number" value="500">
+                        </div>
                     </div>
 
-                    <div class="actions" style="margin-top:15px;">
+                    <div class="actions" style="margin-top:15px; display:flex; gap:10px;">
                         <button type="submit" class="btn" id="saveBtn">Generate OPD Slip</button>
+                        <button type="button" id="updateBtn" class="btn info hidden">Update Details Only</button>
                         <button type="button" id="clearBtn" class="btn ghost">Reset Form</button>
                     </div>
                 </form>
@@ -174,7 +176,6 @@
     import { getFirestore, collection, addDoc, updateDoc, doc, onSnapshot, query, where, getDocs } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    // YOUR KEYS (From previous chat)
     const firebaseConfig = {
         apiKey: "AIzaSyBne_-4FcG5DjtUDVwdd1K-XDsHjX0JOEo",
         authDomain: "msn-hospital.firebaseapp.com",
@@ -184,11 +185,9 @@
         appId: "1:525072218332:web:5940ec924f59db675adc19",
         measurementId: "G-FXXZ7STWDJ"
     };
-    // Initialize
+
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-
-    // Make available to app.js
     window.db = db;
     window.collection = collection;
     window.addDoc = addDoc;
@@ -198,8 +197,6 @@
     window.query = query;
     window.where = where;
     window.getDocs = getDocs;
-
-    console.log("Firebase Connected");
 </script>
 
 <script type="module" src="app.js"></script>
