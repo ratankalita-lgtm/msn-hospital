@@ -4,6 +4,9 @@
   --secondary: #6c757d; --success: #28a745; --danger: #dc3545; --warning: #ffc107; --info: #17a2b8;
   --bg: #f0f2f5; --text: #343a40; --border: #ced4da; --white: #ffffff;
   --shadow: 0 2px 8px rgba(0,0,0,0.08);
+  /* Eye Colors */
+  --od-tint: #fff5f5; /* Light Red tint for Right Eye */
+  --os-tint: #f0f7ff; /* Light Blue tint for Left Eye */
 }
 
 body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; }
@@ -35,10 +38,43 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: var(--b
 .col.wide { flex: 2; }
 .col.narrow { flex: 0 0 110px; }
 
+/* --- STICKY PATIENT HEADER (New Improvement) --- */
+/* This makes the patient name stick to the top when scrolling */
+#consult-section > div:first-child {
+    position: sticky;
+    top: 0;
+    z-index: 999;
+    background: white;
+    border-bottom: 2px solid #007bff;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
 label { font-weight: 600; font-size: 0.85rem; margin-bottom: 6px; color: #495057; }
 input, select, textarea { padding: 10px; border: 1px solid #ced4da; border-radius: 5px; font-size: 0.95rem; width: 100%; box-sizing: border-box; transition: 0.2s; font-family: inherit; }
 input:focus, select:focus, textarea:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(0,123,255,0.15); }
 input[readonly] { background-color: #e9ecef; cursor: not-allowed; }
+
+/* --- OPHTHALMOLOGY SPECIFIC GRIDS (New Improvement) --- */
+/* Tints the grid columns slightly to avoid Right/Left eye mixups */
+.pgp-grid > div:nth-child(1), .compact-grid > div:nth-child(1) { font-weight: bold; color: #555; } /* Labels */
+
+/* Right Eye (OD) Columns - usually 2nd column in your grid */
+.pgp-grid > div:nth-child(2), 
+.compact-grid > div:nth-child(2),
+.pgp-grid input:nth-child(2),
+.compact-grid input:nth-child(2) {
+    background-color: var(--od-tint); 
+    border-color: #ffd6d6;
+}
+
+/* Left Eye (OS) Columns - usually 3rd column in your grid */
+.pgp-grid > div:nth-child(3), 
+.compact-grid > div:nth-child(3),
+.pgp-grid input:nth-child(3),
+.compact-grid input:nth-child(3) {
+    background-color: var(--os-tint);
+    border-color: #d6e9ff;
+}
 
 /* --- BUTTONS --- */
 .actions { display: flex; gap: 10px; margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee; }
@@ -57,17 +93,17 @@ td { padding: 12px; border-bottom: 1px solid #eee; font-size: 0.95rem; vertical-
 tr:last-child td { border-bottom: none; }
 tr:hover { background-color: #f8f9fa; }
 
-/* --- BADGES (Status Colors) --- */
+/* --- BADGES --- */
 .badge { padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; color: white; display: inline-block; }
-.badge.waiting { background-color: #ffc107; color: #333; } /* Yellow */
-.badge.active { background-color: #28a745; }             /* Green */
-.badge.completed { background-color: #6c757d; }          /* Grey */
+.badge.waiting { background-color: #ffc107; color: #333; }
+.badge.active { background-color: #28a745; }
+.badge.completed { background-color: #6c757d; }
 
 /* --- UTILITIES --- */
 .hidden { display: none !important; }
 .text-muted { color: #6c757d; }
 
-/* --- TOAST NOTIFICATION --- */
+/* --- TOAST --- */
 #toast {
   visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center;
   border-radius: 4px; padding: 12px; position: fixed; z-index: 1000; left: 50%; bottom: 30px;
@@ -81,11 +117,15 @@ tr:hover { background-color: #f8f9fa; }
 .cv-backdrop { position: absolute; top:0; left:0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); }
 .cv-card { position: relative; background: white; padding: 30px; border-radius: 8px; width: 600px; z-index: 1001; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
 
-/* --- DOCTOR & PRINT STYLES --- */
-.opto-review-table td, .opto-review-table th { border: 1px solid #ddd; padding: 6px; text-align: center; }
-.opto-review-table th:first-child, .opto-review-table td:first-child { text-align: left; background: #f9f9f9; }
+/* --- PRINT RULES --- */
+@media print {
+    .hospital-header, .actions, .btn, #doc-queue-section, .print-control { display: none !important; }
+    .container { width: 100%; max-width: 100%; box-shadow: none; padding: 0; margin: 0; }
+    .card { box-shadow: none; border: none; padding: 0; }
+    input, textarea { border: none; background: transparent; resize: none; padding: 0; }
+    select { appearance: none; border: none; background: transparent; }
+}
 
 @media (max-width: 900px) {
     .container > div { grid-template-columns: 1fr !important; }
-    .doctor-grid { grid-template-columns: 1fr !important; height: auto; }
 }

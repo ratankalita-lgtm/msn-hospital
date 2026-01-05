@@ -57,6 +57,9 @@
         .status-investigation { background: #fff3cd; color: #856404; padding: 2px 8px; border-radius: 12px; font-size:0.8em; font-weight: bold; }
         .status-ready { background: #d4edda; color: #155724; padding: 2px 8px; border-radius: 12px; font-size:0.8em; font-weight: bold; }
         
+        /* Warnings */
+        .warning-box { background: #fff3cd; color: #856404; padding: 10px; border: 1px solid #ffeeba; border-radius: 6px; margin-bottom: 15px; font-weight: bold; display: flex; align-items: center; gap: 10px; }
+
         /* Queue Table */
         table { width: 100%; border-collapse: separate; border-spacing: 0; }
         th { background: #f8f9fa; color: #495057; padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6; }
@@ -100,12 +103,14 @@
             <button class="btn ghost" onclick="cancelConsult()">Back to List</button>
         </div>
 
+        <div id="age-warning-box" class="warning-box hidden"></div>
+
         <div id="investigation-result-box" class="hidden" style="background:#d4edda; color:#155724; padding:15px; border:1px solid #c3e6cb; border-radius:8px; margin-bottom:20px;">
             <strong>🧪 Investigation Report Available:</strong>
             <p id="inv-report-text" style="margin:5px 0 0 0; white-space: pre-wrap; font-weight:bold;"></p>
         </div>
         
-        <form onsubmit="event.preventDefault(); window.saveAndFinish();">
+        <form onsubmit="event.preventDefault(); window.printRx();">
             
             <div class="section-box">
                 <div class="section-header">1. History & Background (Editable)</div>
@@ -175,19 +180,17 @@
                 <div class="row"><div class="col"><div style="display:flex; justify-content:space-between; margin-bottom:5px;"><label>Advice / Plan</label><label class="print-control"><input type="checkbox" id="chk_advice" checked> Print</label></div><div style="display:flex; gap:10px; margin-bottom:5px;"><select id="advice_templates" onchange="applyTemplate(this.value)"><option value="">-- Select Template --</option></select><button type="button" class="btn small" onclick="addNewTemplate()">Add</button><button type="button" class="btn small ghost" onclick="deleteTemplate()" style="color:red;">Del</button></div><textarea id="advice" rows="4"></textarea></div></div>
                 
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; margin-bottom:5px;"><label>Medicines (Rx)</label><label class="print-control"><input type="checkbox" id="chk_meds" checked> Print</label></div>
-                <table id="med-table" style="width:100%; margin-bottom:10px;"><thead><tr><th style="width:90px;">Eye</th><th>Medicine</th><th>Dose</th><th>Freq</th><th>Dur</th><th style="width:30px;"></th></tr></thead><tbody></tbody></table>
+                <table id="med-table" style="width:100%; margin-bottom:10px;"><thead><tr><th style="width:110px;">Eye</th><th>Medicine</th><th>Dose</th><th>Freq</th><th>Dur</th><th style="width:30px;"></th></tr></thead><tbody></tbody></table>
                 <button type="button" class="btn small" onclick="window.addMedRow()">+ Add Medicine</button>
                 
                 <div class="row" style="margin-top:25px; padding-top:15px; border-top:1px dashed #ccc; align-items:center;"><div class="col" style="flex:0 0 150px;"><label>Follow-up Date:</label></div><div class="col"><input type="date" id="follow_up_date" style="max-width: 200px;"></div></div>
             </div>
 
-            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:10px; margin-bottom:50px;">
-                <button type="button" class="btn" onclick="window.sendToInvestigation()" style="background-color: #ffc107; color: #000; border:none;">🔬 Order Inv.</button>
-                <button type="button" class="btn" onclick="openSurgeryModal()" style="background-color: #dc3545; color: white; border:none;">🔪 Surgery Slip</button>
-                <button type="button" class="btn" onclick="shareWhatsApp()" style="background-color: #25D366; color: white; border:none;">📱 WhatsApp</button>
-                <button type="button" class="btn" onclick="window.printRx()" style="background-color: #17a2b8; color: white; border:none;">🖨️ Print Rx</button>
+            <div style="display:grid; grid-template-columns: 1fr 1fr 1.5fr; gap:10px; margin-bottom:50px;">
+                <button type="button" class="btn" onclick="window.sendToInvestigation()" style="background-color: #ffc107; color: #000; border:none; padding:15px; font-size:1.1em;">🔬 Order Inv.</button>
+                <button type="button" class="btn" onclick="openSurgeryModal()" style="background-color: #dc3545; color: white; border:none; padding:15px; font-size:1.1em;">🔪 Surgery Slip</button>
+                <button type="button" class="btn" onclick="window.printRx()" style="background-color: #17a2b8; color: white; border:none; padding:15px; font-size:1.1em;">💾 Save & 🖨️ Print Rx</button>
             </div>
-             <button type="submit" class="btn" style="width:100%; padding:15px; font-size:1.2em; margin-bottom:50px;">💾 Save Record</button>
         </form>
     </section>
 </div>
@@ -247,6 +250,23 @@
         const month = String(d.getMonth() + 1).padStart(2, '0');
         const day = String(d.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
+    }
+
+    // --- AGE WARNING LOGIC ---
+    function checkAgeWarnings(age) {
+        const box = document.getElementById('age-warning-box');
+        box.classList.add('hidden');
+        if(!age) return;
+        const numAge = parseInt(age);
+        if(isNaN(numAge)) return;
+
+        if(numAge < 12) {
+            box.innerText = "⚠ Paediatric patient (Below 12 years)";
+            box.classList.remove('hidden');
+        } else if(numAge >= 60) {
+            box.innerText = "⚠ Senior citizen patient (60 years or above)";
+            box.classList.remove('hidden');
+        }
     }
 
     window.onload = function() {
@@ -319,6 +339,15 @@
         document.getElementById('doc-queue-section').classList.add('hidden'); document.getElementById('consult-section').classList.remove('hidden');
         document.getElementById('p-name').innerText = currentVisit.patientName; document.getElementById('p-info').innerText = `PID: ${currentVisit.pid}`;
         
+        // CHECK AGE WARNING
+        checkAgeWarnings(currentVisit.age);
+
+        // SET MIN DATE (TOMORROW) FOR FOLLOW UP
+        const tmrw = new Date();
+        tmrw.setDate(tmrw.getDate() + 1);
+        const minDate = tmrw.toISOString().split('T')[0];
+        document.getElementById('follow_up_date').min = minDate;
+
         const invBox = document.getElementById('investigation-result-box');
         if(currentVisit.investigationReport) { invBox.classList.remove('hidden'); document.getElementById('inv-report-text').innerText = currentVisit.investigationReport; } else { invBox.classList.add('hidden'); }
 
@@ -346,12 +375,25 @@
     window.cancelConsult = function() { document.getElementById('consult-section').classList.add('hidden'); document.getElementById('doc-queue-section').classList.remove('hidden'); currentVisit = null; };
     window.addMedRow = function(data = {}) {
         const tbody = document.querySelector('#med-table tbody'); const tr = document.createElement('tr');
-        tr.innerHTML = `<td><select class="med-eye" style="width:100%;font-weight:bold;"><option value="OU">OU</option><option value="OD">OD</option><option value="OS">OS</option><option value="-">-</option></select></td><td><input class="med-name" list="med-list" placeholder="Medicine" value="${data.name||''}"></td><td><input class="med-dose" placeholder="Dose" value="${data.dose||''}"></td><td><input class="med-freq" list="freq-list" placeholder="Freq" value="${data.freq||''}"></td><td><input class="med-dur" placeholder="Days" value="${data.duration||''}"></td><td><button type="button" onclick="this.closest('tr').remove()" style="color:red;border:none;background:none;font-weight:bold;">X</button></td>`;
+        tr.innerHTML = `<td><select class="med-eye" style="width:100%;font-weight:bold;"><option value="Both Eyes">Both Eyes</option><option value="Right Eye">Right Eye</option><option value="Left Eye">Left Eye</option><option value="-">-</option></select></td><td><input class="med-name" list="med-list" placeholder="Medicine" value="${data.name||''}"></td><td><input class="med-dose" placeholder="Dose" value="${data.dose||''}"></td><td><input class="med-freq" list="freq-list" placeholder="Freq" value="${data.freq||''}"></td><td><input class="med-dur" placeholder="Days" value="${data.duration||''}"></td><td><button type="button" onclick="this.closest('tr').remove()" style="color:red;border:none;background:none;font-weight:bold;">X</button></td>`;
         if(data.eye) tr.querySelector('.med-eye').value = data.eye; tbody.appendChild(tr);
     };
 
     async function performSave() {
         if(!currentVisit) return;
+        
+        // VALIDATE FOLLOW UP DATE
+        const fuDate = document.getElementById('follow_up_date').value;
+        if(fuDate) {
+            const selected = new Date(fuDate);
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            if(selected <= today) {
+                alert("Error: Follow-up date must be in the future (Tomorrow or later).");
+                return; // STOP SAVE
+            }
+        }
+
         const meds = []; document.querySelectorAll('#med-table tbody tr').forEach(tr => { const name = tr.querySelector('.med-name').value; if(name) meds.push({ eye: tr.querySelector('.med-eye').value, name, dose: tr.querySelector('.med-dose').value, freq: tr.querySelector('.med-freq').value, duration: tr.querySelector('.med-dur').value }); });
         let updatedOpto = currentVisit.optoData || {};
         const set = (obj, path, val) => { const k = path.split('.'); let t = obj; k.slice(0,-1).forEach(key=>{ if(!t[key])t[key]={}; t=t[key]; }); t[k.pop()] = val; };
@@ -366,15 +408,6 @@
     window.sendToInvestigation = async function() { const invName = prompt("Enter Investigation Required:"); if(!invName) return; try { await updateDoc(doc(db, "visits", currentVisit.firebaseId), { status: "Investigation", investigationRequest: invName, investigationReport: "" }); alert("Sent to Optometrist."); window.cancelConsult(); } catch(e) { alert(e.message); } };
     window.saveAndFinish = async function() { try { const btn = document.querySelector('button[type="submit"]'); btn.innerText = "Saving..."; await performSave(); alert("Saved Successfully!"); window.cancelConsult(); btn.innerText = "Save Record"; } catch(e) { alert("Error: " + e.message); } };
 
-    window.shareWhatsApp = async function() {
-        if(!currentVisit) return;
-        const name = currentVisit.patientName; const pid = currentVisit.pid;
-        const rawDate = document.getElementById('follow_up_date').value;
-        const date = rawDate ? window.formatDate(rawDate) : "Consult Doctor";
-        const text = `Hello ${name}, from MSN Hospital.\n\n👤 Patient ID: ${pid}\n📅 Next Follow-up: ${date}\n📍 Address: Tilak Deka Road, Nagaon.`;
-        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-    }
-
     window.openSurgeryModal = function() { document.getElementById('surgeryModal').style.display = "block"; }
     window.closeSurgeryModal = function() { document.getElementById('surgeryModal').style.display = "none"; }
     window.printAdmissionSlip = function() {
@@ -382,7 +415,7 @@
         const eye = document.getElementById('surg_eye').value; 
         const rawDate = document.getElementById('surg_date').value; 
         
-        // --- STRICT MANUAL FORMATTING (Added this) ---
+        // --- STRICT MANUAL FORMATTING ---
         let dateStr = "To be decided";
         if(rawDate) {
             // Manually split YYYY-MM-DD
@@ -392,7 +425,7 @@
         
         const proc = document.getElementById('surg_proc').value; const power = document.getElementById('surg_power').value; const model = document.getElementById('surg_model').value; const notes = document.getElementById('surg_notes').value;
         const win = window.open('', '', 'width=800,height=600');
-        const content = `<html><head><title>Admission</title><style>body{font-family:'Segoe UI',sans-serif;padding:40px;color:#333;}.header-grid{display:grid;grid-template-columns:100px 1fr;gap:20px;align-items:center;border-bottom:3px solid #dc3545;padding-bottom:15px;margin-bottom:20px;}.header-text{text-align:center;}.header-text h2{margin:0;color:#dc3545;font-size:24px;text-transform:uppercase;}.table{width:100%;border-collapse:collapse;margin-top:20px;}.table td{padding:12px;border:1px solid #ddd;font-size:1.1em;}.label{font-weight:bold;background:#f8f9fa;width:30%;}</style></head><body onload="window.print()"><div class="header-grid"><img src="logo.png" style="width:100px;"><div class="header-text"><h2>MSN Cataract and IOL Hospital</h2><p>Tilak Deka Road, Nagaon, Assam | Phone: 8486887503</p></div></div><h2 style="text-align:center;text-decoration:underline;">ADMISSION ADVICE</h2><table class="table"><tr><td class="label">Patient Name</td><td>${currentVisit.patientName}</td></tr><tr><td class="label">Age / Sex</td><td>${currentVisit.age} / ${currentVisit.gender}</td></tr><tr><td class="label">Planned Surgery</td><td><b>${proc}</b></td></tr><tr><td class="label">Eye</td><td><b>${eye}</b></td></tr><tr><td class="label">IOL Power</td><td><b>${power}</b></td></tr><tr><td class="label">IOL Model</td><td>${model}</td></tr><tr><td class="label">Date of Surgery</td><td><b>${dateStr}</b></td></tr><tr><td class="label">Instructions</td><td>${notes}</td></tr></table><div style="margin-top:50px;text-align:right;"><strong>${loggedInDoctor}</strong><br>Signature</div></body></html>`;
+        const content = `<html><head><title>Admission</title><style>body{font-family:'Segoe UI',sans-serif;padding:40px;color:#333;}.header-grid{display:grid;grid-template-columns:100px 1fr;gap:20px;align-items:center;border-bottom:3px solid #dc3545;padding-bottom:15px;margin-bottom:20px;}.header-text{text-align:center;}.header-text h2{margin:0;color:#dc3545;font-size:24px;text-transform:uppercase;}.table{width:100%;border-collapse:collapse;margin-top:20px;}.table td{padding:12px;border:1px solid #ddd;font-size:1.1em;}.label{font-weight:bold;background:#f8f9fa;width:30%;}</style></head><body onload="window.print()"><div class="header-grid"><img src="logo.png" style="width:100px;"><div class="header-text"><h2>MSN Cataract and IOL Hospital</h2><p>Tilak Deka Road, Nagaon, Assam | Phone: 8486887503</p></div></div><h2 style="text-align:center;text-decoration:underline;">ADMISSION ADVICE</h2><table class="table"><tr><td class="label">Patient Name</td><td>${currentVisit.patientName}</td></tr><tr><td class="label">Age / Sex</td><td>${currentVisit.age} / ${currentVisit.gender}</td></tr><tr><td class="label">Planned Surgery</td><td><b>${proc}</b></td></tr><tr><td class="label">Eye</td><td><b>${eye}</b></td></tr><tr><td class="label">IOL Power</td><td><b>${power}</b></td></tr><tr><td class="label">IOL Model</td><td><b>${model}</b></td></tr><tr><td class="label">Date of Surgery</td><td><b>${dateStr}</b></td></tr><tr><td class="label">Instructions</td><td>${notes}</td></tr></table><div style="margin-top:50px;text-align:right;"><strong>${loggedInDoctor}</strong><br>Signature</div></body></html>`;
         win.document.write(content); win.document.close(); closeSurgeryModal();
     }
 
