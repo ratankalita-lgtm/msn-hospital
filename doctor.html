@@ -77,7 +77,7 @@
         <img src="logo.png" alt="Logo" class="hospital-logo" onerror="this.style.display='none'">
         <div>
             <h2>Doctor Console</h2>
-            <p class="text-muted" id="welcome-msg">Welcome</p>
+            <p class="text-muted" id="welcome-msg">Welcome Doctor</p>
         </div>
         <button class="btn ghost small" onclick="logout()" style="margin-left:auto;">Change Doctor</button>
     </header>
@@ -108,7 +108,7 @@
         <form onsubmit="event.preventDefault(); window.saveAndFinish();">
             
             <div class="section-box">
-                <div class="section-header">1. History & Background (Editable)</div>
+                <div class="section-header">1. History & Background </div>
                 <div class="row">
                     <div class="col"><label>Chief Complaint</label><textarea id="ed_cc" rows="2"></textarea></div>
                     <div class="col"><label>Ocular History</label><textarea id="ed_oh" rows="2"></textarea></div>
@@ -198,7 +198,7 @@
         <div class="row"><div class="col"><label>Eye</label><select id="surg_eye"><option>Right Eye (OD)</option><option>Left Eye (OS)</option></select></div><div class="col"><label>Admission Date</label><input type="date" id="surg_date"></div></div>
         <div class="row"><div class="col"><label>Procedure</label><input id="surg_proc" value="Phacoemulsification + IOL Implantation"></div></div>
         <div class="row"><div class="col"><label>IOL Power</label><input id="surg_power" placeholder="+21.0 D"></div><div class="col"><label>IOL Model</label><input id="surg_model" placeholder="Alcon AcrySof / Indian"></div></div>
-        <div class="row"><div class="col"><label>Pre-op Instructions</label><textarea id="surg_notes" rows="2">Start Moxifloxacin Eye Drops 4 times/day 1 day prior to surgery.</textarea></div></div>
+        <div class="row"><div class="col"><label>Pre-op Instructions</label><textarea id="surg_notes" rows="2">Start Moxifloxacin Eye Drops 4 times/day 2 Days prior to surgery. Start Bromfenac Eye Drops 3 times.day 2 days prior to surgery. Start Tropicamide Eye Drops from 6.30 AM every 20 minutes on the day of surgery. Report to Hospital at 8.00 AM on the day of surgery textarea></div></div>
         <button class="btn" onclick="printAdmissionSlip()" style="width:100%; margin-top:10px;">Print Admission Slip</button>
     </div>
 </div>
@@ -224,11 +224,17 @@
         "Dr. Sanjay Kr Buragohain": { qual: "MS, DNB", reg: "Regd. No. 11863", desig: "Specialist Neuro–Ophthalmology & Glaucoma" }
     };
 
-    // HELPER: Format Date to DD/MM/YYYY
-    window.formatDate = function(isoDate) {
-        if(!isoDate) return "";
-        const d = new Date(isoDate);
-        if(isNaN(d.getTime())) return isoDate;
+    // --- STRICT DATE FORMATTER (DD/MM/YYYY) ---
+    window.formatDate = function(dateString) {
+        if(!dateString) return "";
+        // If it looks like YYYY-MM-DD (Input value), split it manually to avoid timezone shifts
+        if(dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            const [y, m, d] = dateString.split('-');
+            return `${d}/${m}/${y}`;
+        }
+        // Fallback for timestamps
+        const d = new Date(dateString);
+        if(isNaN(d.getTime())) return dateString;
         const day = String(d.getDate()).padStart(2, '0');
         const month = String(d.getMonth() + 1).padStart(2, '0');
         const year = d.getFullYear();
@@ -394,7 +400,7 @@
         if(showMeds) { document.querySelectorAll('#med-table tbody tr').forEach(tr => { const name = tr.querySelector('.med-name').value; const eye = tr.querySelector('.med-eye').value; if(name) medRows += `<tr><td><strong>${eye}</strong></td><td>${name}</td><td>${tr.querySelector('.med-dose').value}</td><td>${tr.querySelector('.med-freq').value}</td><td>${tr.querySelector('.med-dur').value}</td></tr>`; }); }
         
         const win = window.open('', '', 'width=800,height=600');
-        const content = `<html><head><title>Rx</title><base href="${window.location.href}"><style>body{font-family:'Segoe UI',sans-serif;padding:40px;color:#333;}.header-grid{display:grid;grid-template-columns:100px 1fr;gap:20px;align-items:center;border-bottom:3px solid #004085;padding-bottom:15px;margin-bottom:20px;}.header-text{text-align:center;}.header-text h2{margin:0;color:#004085;font-size:24px;text-transform:uppercase;}.header-text p{margin:2px 0;font-size:14px;}.meta{display:flex;justify-content:space-between;margin-bottom:20px;border-bottom:1px solid #ccc;padding-bottom:10px;align-items:flex-start;}.section h4{margin:0 0 8px 0;color:#004085;text-transform:uppercase;font-size:0.9em;border-bottom:1px solid #eee;padding-bottom:3px;display:inline-block;}.content{font-size:1.1em;line-height:1.5;margin-bottom:20px;}table{width:100%;border-collapse:collapse;}th,td{border-bottom:1px solid #ddd;padding:8px;text-align:left;}th{background-color:#f8f9fa;}.footer{margin-top:40px;display:flex;justify-content:space-between;align-items:flex-end;border-top:1px dotted #ccc;padding-top:20px;}</style></head><body onload="setTimeout(function(){window.print()}, 800)"><div class="header-grid"><img src="logo.png" style="width:100px;height:auto;"><div class="header-text"><h2>MSN Cataract and IOL Hospital</h2><p><em>(A unit of Kantashree Community Care)</em></p><p>Tilak Deka Road, Nagaon, Assam, Pin – 782001</p><p>তিলক ডেকা পথ, নগাঁও, অসম - ৭৮২০০১</p><p>Mobile : 8486887503 | Govt. Licence No. – SHA/205</p></div></div><div class="meta"><div style="flex:1;"><strong>Name / নাম:</strong> ${currentVisit.patientName}<br><strong>PID:</strong> ${currentVisit.pid} &nbsp;|&nbsp; <strong>Age/Sex:</strong> ${currentVisit.age}Y/${currentVisit.gender}<br><strong>Date / তাৰিখ:</strong> ${window.formatDate(new Date())}</div><div style="flex:1;text-align:right;"><strong style="font-size:1.1em;color:#004085;">${loggedInDoctor}</strong><br><span style="font-size:0.9em;color:#555;">${dr.qual}</span><br><span style="font-size:0.9em;color:#555;">${dr.reg}</span><br><span style="font-size:0.85em;font-weight:bold;">${dr.desig}</span></div></div>${showDiag ? `<div class="section"><h4>Diagnosis / ৰোগ নিৰ্ণয়</h4><div class="content">${diag.replace(/\n/g, '<br>')}</div></div>` : ''}${showAdv ? `<div class="section"><h4>Advice / পৰামৰ্শ</h4><div class="content">${adv.replace(/\n/g, '<br>')}</div></div>` : ''}${showMeds && medRows ? `<div class="section"><h4>Medicines (Rx) / ঔষধ</h4><table><thead><tr><th>Eye / চকু</th><th>Medicine / ঔষধ</th><th>Dose / মাত্ৰা</th><th>Freq / বাৰ</th><th>Duration / সময়</th></tr></thead><tbody>${medRows}</tbody></table></div>` : ''}${rawFollowUp ? `<div class="section" style="margin-top:20px; border:2px solid #000; padding:10px; display:inline-block;"><strong>Next Visit / পৰৱৰ্তী সাক্ষাৎ:</strong> <span style="font-size:1.2em; font-weight:bold;">${window.formatDate(rawFollowUp)}</span></div>` : ''}<div class="footer"><div style="font-size:0.8em;color:#777;">A Day Eye Care Institution<br>এক দিৱসীয় চকুৰ চিকিৎসা প্ৰতিষ্ঠান</div><div style="text-align:center;">______________________<br><strong>Signature / স্বাক্ষৰ</strong></div></div></body></html>`;
+        const content = `<html><head><title>Rx</title><base href="${window.location.href}"><style>body{font-family:'Segoe UI',sans-serif;padding:40px;color:#333;}.header-grid{display:grid;grid-template-columns:100px 1fr;gap:20px;align-items:center;border-bottom:3px solid #004085;padding-bottom:15px;margin-bottom:20px;}.header-text{text-align:center;}.header-text h2{margin:0;color:#004085;font-size:24px;text-transform:uppercase;}.header-text p{margin:2px 0;font-size:14px;}.meta{display:flex;justify-content:space-between;margin-bottom:20px;border-bottom:1px solid #ccc;padding-bottom:10px;align-items:flex-start;}.section h4{margin:0 0 8px 0;color:#004085;text-transform:uppercase;font-size:0.9em;border-bottom:1px solid #eee;padding-bottom:3px;display:inline-block;}.content{font-size:1.1em;line-height:1.5;margin-bottom:20px;}table{width:100%;border-collapse:collapse;}th,td{border-bottom:1px solid #ddd;padding:8px;text-align:left;}th{background-color:#f8f9fa;}.footer{margin-top:40px;display:flex;justify-content:space-between;align-items:flex-end;border-top:1px dotted #ccc;padding-top:20px;}</style></head><body onload="setTimeout(function(){window.print()}, 800)"><div class="header-grid"><img src="logo.png" style="width:100px;height:auto;"><div class="header-text"><h2>MSN Cataract and IOL Hospital</h2><p><em>(A unit of Kantashree Community Care)</em></p><p>Tilak Deka Road, Nagaon, Assam, Pin – 782001</p><p>তিলক ডেকা পথ, নগাঁও, অসম - ৭৮২০০১</p><p>Mobile : 8486887503 | Govt. Licence No. – SHA/205</p></div></div><div class="meta"><div style="flex:1;"><strong>Name / নাম:</strong> ${currentVisit.patientName}<br><strong>PID:</strong> ${currentVisit.pid} &nbsp;|&nbsp; <strong>Age/Sex:</strong> ${currentVisit.age}Y/${currentVisit.gender}<br><strong>Date / তাৰিখ:</strong> ${window.formatDate(new Date().toISOString().split('T')[0])}</div><div style="flex:1;text-align:right;"><strong style="font-size:1.1em;color:#004085;">${loggedInDoctor}</strong><br><span style="font-size:0.9em;color:#555;">${dr.qual}</span><br><span style="font-size:0.9em;color:#555;">${dr.reg}</span><br><span style="font-size:0.85em;font-weight:bold;">${dr.desig}</span></div></div>${showDiag ? `<div class="section"><h4>Diagnosis / ৰোগ নিৰ্ণয়</h4><div class="content">${diag.replace(/\n/g, '<br>')}</div></div>` : ''}${showAdv ? `<div class="section"><h4>Advice / পৰামৰ্শ</h4><div class="content">${adv.replace(/\n/g, '<br>')}</div></div>` : ''}${showMeds && medRows ? `<div class="section"><h4>Medicines (Rx) / ঔষধ</h4><table><thead><tr><th>Eye / চকু</th><th>Medicine / ঔষধ</th><th>Dose / মাত্ৰা</th><th>Freq / বাৰ</th><th>Duration / সময়</th></tr></thead><tbody>${medRows}</tbody></table></div>` : ''}${rawFollowUp ? `<div class="section" style="margin-top:20px; border:2px solid #000; padding:10px; display:inline-block;"><strong>Next Visit / পৰৱৰ্তী সাক্ষাৎ:</strong> <span style="font-size:1.2em; font-weight:bold;">${window.formatDate(rawFollowUp)}</span></div>` : ''}<div class="footer"><div style="font-size:0.8em;color:#777;">A Day Eye Care Institution<br>এক দিৱসীয় চকুৰ চিকিৎসা প্ৰতিষ্ঠান</div><div style="text-align:center;">______________________<br><strong>Signature / স্বাক্ষৰ</strong></div></div></body></html>`;
         win.document.write(content); win.document.close();
     };
 </script>
