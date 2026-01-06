@@ -27,6 +27,13 @@
         }
         label { font-weight: 600; color: #495057; margin-bottom: 5px; font-size: 0.85em; text-transform: uppercase; }
 
+        /* Color Coding */
+        .od-input { border: 1px solid #ff9999; background-color: #fff5f5; color: #d60000; }
+        .od-input:focus { outline: 2px solid #ffcccc; }
+        
+        .os-input { border: 1px solid #99ccff; background-color: #f0f8ff; color: #004085; }
+        .os-input:focus { outline: 2px solid #cce5ff; }
+
         /* Section Boxes */
         .section-box {
             background: #fff;
@@ -51,12 +58,13 @@
         .pgp-grid { display: grid; grid-template-columns: 50px 1fr 1fr 1fr 1fr; gap: 5px; align-items: center; margin-bottom: 5px; }
         .small-input { padding: 6px; font-size: 0.9em; text-align: center; }
 
-        .print-control { display: flex; align-items: center; gap: 5px; font-size: 0.85em; color: #666; margin-left: auto; text-transform: none; }
+        .print-control { display: flex; align-items: center; gap: 5px; font-size: 0.85em; color: #666; margin-left: auto; text-transform: none; cursor: pointer; }
         
         /* Status Badges */
         .status-investigation { background: #fff3cd; color: #856404; padding: 2px 8px; border-radius: 12px; font-size:0.8em; font-weight: bold; }
         .status-ready { background: #d4edda; color: #155724; padding: 2px 8px; border-radius: 12px; font-size:0.8em; font-weight: bold; }
-        
+        .dilation-badge { background: #e0cffc; color: #5e35b1; padding: 4px 10px; border-radius: 12px; font-size:0.8em; font-weight: bold; margin-left: 10px; border: 1px solid #b39ddb; }
+
         /* Warnings */
         .warning-box { background: #fff3cd; color: #856404; padding: 10px; border: 1px solid #ffeeba; border-radius: 6px; margin-bottom: 15px; font-weight: bold; display: flex; align-items: center; gap: 10px; }
 
@@ -99,7 +107,10 @@
     <section id="consult-section" class="hidden">
         
         <div style="background: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #007bff;">
-            <div><h2 id="p-name" style="margin:0; color:#333; font-size: 1.5em;">-</h2><small id="p-info" style="color:#777; font-size: 0.95em;">PID: -</small></div>
+            <div style="display:flex; align-items:center;">
+                <div><h2 id="p-name" style="margin:0; color:#333; font-size: 1.5em;">-</h2><small id="p-info" style="color:#777; font-size: 0.95em;">PID: -</small></div>
+                <span id="dilation-alert" class="dilation-badge hidden">💧 Dilated</span>
+            </div>
             <button class="btn ghost" onclick="cancelConsult()">Back to List</button>
         </div>
 
@@ -126,49 +137,69 @@
                         <div>Eye</div><div>Sph</div><div>Cyl</div><div>Axis</div><div>Add</div>
                     </div>
                     <div class="pgp-grid">
-                        <div style="font-weight:bold; text-align:center;">OD</div>
-                        <input id="ed_pgp_sph_od" class="small-input"><input id="ed_pgp_cyl_od" class="small-input"><input id="ed_pgp_ax_od" class="small-input"><input id="ed_pgp_add_od" class="small-input">
+                        <div style="font-weight:bold; text-align:center; color:#d60000;">OD</div>
+                        <input id="ed_pgp_sph_od" class="small-input od-input"><input id="ed_pgp_cyl_od" class="small-input od-input"><input id="ed_pgp_ax_od" class="small-input od-input"><input id="ed_pgp_add_od" class="small-input od-input">
                     </div>
                     <div class="pgp-grid">
-                        <div style="font-weight:bold; text-align:center;">OS</div>
-                        <input id="ed_pgp_sph_os" class="small-input"><input id="ed_pgp_cyl_os" class="small-input"><input id="ed_pgp_ax_os" class="small-input"><input id="ed_pgp_add_os" class="small-input">
+                        <div style="font-weight:bold; text-align:center; color:#004085;">OS</div>
+                        <input id="ed_pgp_sph_os" class="small-input os-input"><input id="ed_pgp_cyl_os" class="small-input os-input"><input id="ed_pgp_ax_os" class="small-input os-input"><input id="ed_pgp_add_os" class="small-input os-input">
                     </div>
                 </div>
                 <div style="margin-top: 15px;">
-                    <label style="color:#007bff;">External Exam</label>
+                    <label style="color:#007bff;">External Exam (Ext | EOM | Cover Test)</label>
                     <div class="row" style="gap: 10px;">
-                        <div class="col"><input id="ed_ext_od" placeholder="OD External"></div>
-                        <div class="col"><input id="ed_ext_os" placeholder="OS External"></div>
+                        <div class="col"><input id="ed_ext_od" class="od-input" placeholder="OD External"></div>
+                        <div class="col"><input id="ed_ext_os" class="os-input" placeholder="OS External"></div>
                     </div>
                 </div>
             </div>
 
             <div class="section-box">
-                <div class="section-header">2. Clinical Findings</div>
+                <div class="section-header" style="display:flex; justify-content:space-between;">
+                    <span>2. Clinical Findings</span>
+                    <label class="print-control"><input type="checkbox" id="chk_glasses" checked> Print Glasses Rx</label>
+                </div>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:30px;">
                     <div>
                         <h5 style="margin:0 0 10px 0; color:#555;">Visual Acuity</h5>
                         <div class="compact-grid header"><div>Test</div><div>OD</div><div>OS</div></div>
-                        <div class="compact-grid"><div>Dist</div><input id="ed_va_od" class="small-input"><input id="ed_va_os" class="small-input"></div>
-                        <div class="compact-grid"><div>Near</div><input id="ed_va_near_od" class="small-input"><input id="ed_va_near_os" class="small-input"></div>
-                        <div class="compact-grid"><div>PH</div><input id="ed_ph_od" class="small-input"><input id="ed_ph_os" class="small-input"></div>
+                        <div class="compact-grid"><div>Dist</div><input id="ed_va_od" class="small-input od-input"><input id="ed_va_os" class="small-input os-input"></div>
+                        <div class="compact-grid"><div>Near</div><input id="ed_va_near_od" class="small-input od-input"><input id="ed_va_near_os" class="small-input os-input"></div>
+                        <div class="compact-grid"><div>PH</div><input id="ed_ph_od" class="small-input od-input"><input id="ed_ph_os" class="small-input os-input"></div>
                         
-                        <h5 style="margin:20px 0 10px 0; color:#555;">Refraction</h5>
+                        <h5 style="margin:20px 0 10px 0; color:#555;">Refraction (Final)</h5>
                         <div class="pgp-grid" style="background:#f1f3f5; font-weight:bold; font-size:0.8em; text-align:center;"><div>Eye</div><div>Sph</div><div>Cyl</div><div>Axis</div><div>VA</div></div>
-                        <div class="pgp-grid"><div style="font-weight:bold; text-align:center;">OD</div><input id="ed_rx_sph_od" class="small-input"><input id="ed_rx_cyl_od" class="small-input"><input id="ed_rx_ax_od" class="small-input"><input id="ed_rx_va_od" class="small-input"></div>
-                         <div class="pgp-grid"><div style="font-weight:bold; text-align:center;">OS</div><input id="ed_rx_sph_os" class="small-input"><input id="ed_rx_cyl_os" class="small-input"><input id="ed_rx_ax_os" class="small-input"><input id="ed_rx_va_os" class="small-input"></div>
-                        <div class="pgp-grid" style="margin-top:5px;"><div style="font-size:0.8em; font-weight:bold;">Add</div><input id="ed_rx_add_od" class="small-input" placeholder="OD Add"><input id="ed_rx_add_os" class="small-input" placeholder="OS Add"><div></div><div></div></div>
+                        <div class="pgp-grid">
+                            <div style="font-weight:bold; text-align:center; color:#d60000;">OD</div>
+                            <input id="ed_rx_sph_od" class="small-input od-input">
+                            <input id="ed_rx_cyl_od" class="small-input od-input">
+                            <input id="ed_rx_ax_od" type="number" min="0" max="180" class="small-input od-input">
+                            <input id="ed_rx_va_od" class="small-input od-input">
+                        </div>
+                        <div class="pgp-grid">
+                            <div style="font-weight:bold; text-align:center; color:#004085;">OS</div>
+                            <input id="ed_rx_sph_os" class="small-input os-input">
+                            <input id="ed_rx_cyl_os" class="small-input os-input">
+                            <input id="ed_rx_ax_os" type="number" min="0" max="180" class="small-input os-input">
+                            <input id="ed_rx_va_os" class="small-input os-input">
+                        </div>
+                        <div class="pgp-grid" style="margin-top:5px;">
+                            <div style="font-size:0.8em; font-weight:bold;">Add</div>
+                            <input id="ed_rx_add_od" class="small-input od-input" placeholder="OD Add">
+                            <input id="ed_rx_add_os" class="small-input os-input" placeholder="OS Add">
+                            <div></div><div></div>
+                        </div>
                     </div>
                     <div>
                         <h5 style="margin:0 0 10px 0; color:#555;">Slit Lamp Examination</h5>
                         <div class="compact-grid header"><div>Part</div><div>OD</div><div>OS</div></div>
-                        <div class="compact-grid"><div>Lids</div><input id="ed_sl_lids_od" class="small-input"><input id="ed_sl_lids_os" class="small-input"></div>
-                        <div class="compact-grid"><div>Conj</div><input id="ed_sl_conj_od" class="small-input"><input id="ed_sl_conj_os" class="small-input"></div>
-                        <div class="compact-grid"><div>Cornea</div><input id="ed_sl_corn_od" class="small-input"><input id="ed_sl_corn_os" class="small-input"></div>
-                        <div class="compact-grid"><div>AC</div><input id="ed_sl_ac_od" class="small-input"><input id="ed_sl_ac_os" class="small-input"></div>
-                        <div class="compact-grid"><div>Pupil</div><input id="ed_sl_pupil_od" class="small-input"><input id="ed_sl_pupil_os" class="small-input"></div>
-                        <div class="compact-grid"><div>Lens</div><input id="ed_sl_lens_od" class="small-input"><input id="ed_sl_lens_os" class="small-input"></div>
-                        <div class="compact-grid" style="background:#fff3cd; padding:5px; border-radius:4px; margin-top:5px;"><div style="font-weight:bold; color:#856404;">IOP</div><input id="ed_iop_od" class="small-input" style="font-weight:bold;"><input id="ed_iop_os" class="small-input" style="font-weight:bold;"></div>
+                        <div class="compact-grid"><div>Lids</div><input id="ed_sl_lids_od" class="small-input od-input"><input id="ed_sl_lids_os" class="small-input os-input"></div>
+                        <div class="compact-grid"><div>Conj</div><input id="ed_sl_conj_od" class="small-input od-input"><input id="ed_sl_conj_os" class="small-input os-input"></div>
+                        <div class="compact-grid"><div>Cornea</div><input id="ed_sl_corn_od" class="small-input od-input"><input id="ed_sl_corn_os" class="small-input os-input"></div>
+                        <div class="compact-grid"><div>AC</div><input id="ed_sl_ac_od" class="small-input od-input"><input id="ed_sl_ac_os" class="small-input os-input"></div>
+                        <div class="compact-grid"><div>Pupil</div><input id="ed_sl_pupil_od" class="small-input od-input"><input id="ed_sl_pupil_os" class="small-input os-input"></div>
+                        <div class="compact-grid"><div>Lens</div><input id="ed_sl_lens_od" class="small-input od-input"><input id="ed_sl_lens_os" class="small-input os-input"></div>
+                        <div class="compact-grid" style="background:#fff3cd; padding:5px; border-radius:4px; margin-top:5px;"><div style="font-weight:bold; color:#856404;">IOP</div><input id="ed_iop_od" class="small-input od-input" style="font-weight:bold;"><input id="ed_iop_os" class="small-input os-input" style="font-weight:bold;"></div>
                         <div style="margin-top:10px;"><label style="font-size:0.9em;">Remarks</label><input id="ed_sl_remarks" class="small-input" style="text-align:left;"></div>
                     </div>
                 </div>
@@ -227,18 +258,13 @@
         "Dr. Sanjay Kr Buragohain": { qual: "MS, DNB", reg: "Regd. No. 11863", desig: "Specialist Neuro–Ophthalmology & Glaucoma" }
     };
 
-    // --- MANUAL DATE FORMATTER (Guarantees DD/MM/YYYY) ---
+    // --- MANUAL DATE FORMATTER ---
     window.formatDate = function(dateString) {
         if(!dateString) return "";
-        // If it comes from input type="date", it is always YYYY-MM-DD
         if (typeof dateString === 'string' && dateString.includes('-')) {
             const parts = dateString.split('-');
-            if (parts.length === 3) {
-                // Return as DD/MM/YYYY
-                return `${parts[2]}/${parts[1]}/${parts[0]}`;
-            }
+            if (parts.length === 3) { return `${parts[2]}/${parts[1]}/${parts[0]}`; }
         }
-        // Fallback for Date Objects
         const d = new Date(dateString);
         if(isNaN(d.getTime())) return dateString;
         return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
@@ -354,14 +380,41 @@
         const d = currentVisit.optoData || {}; const safe = (obj, path) => path.split('.').reduce((acc, part) => acc && acc[part], obj) || '';
         const set = (id, val) => { if(document.getElementById(id)) document.getElementById(id).value = val; };
 
+        // --- NEW: DILATION ALERT ---
+        const dilationStatus = safe(d, 'plan.dilation');
+        if(dilationStatus && dilationStatus !== 'None' && dilationStatus !== 'Do not dilate') {
+             document.getElementById('dilation-alert').classList.remove('hidden');
+        } else {
+             document.getElementById('dilation-alert').classList.add('hidden');
+        }
+
         set('ed_cc', safe(d, 'history.complaint')); set('ed_oh', safe(d, 'history.ocular_hx'));
         let sys = safe(d, 'history.systemic'); if(safe(d, 'history.allergies')) sys += " / " + safe(d, 'history.allergies'); set('ed_sys', sys);
         
         set('ed_pgp_sph_od', safe(d, 'pgp.od.sph')); set('ed_pgp_cyl_od', safe(d, 'pgp.od.cyl')); set('ed_pgp_ax_od', safe(d, 'pgp.od.ax')); set('ed_pgp_add_od', safe(d, 'pgp.od.add'));
         set('ed_pgp_sph_os', safe(d, 'pgp.os.sph')); set('ed_pgp_cyl_os', safe(d, 'pgp.os.cyl')); set('ed_pgp_ax_os', safe(d, 'pgp.os.ax')); set('ed_pgp_add_os', safe(d, 'pgp.os.add'));
-        set('ed_ext_od', safe(d, 'external.od.ext')); set('ed_ext_os', safe(d, 'external.os.ext'));
+        
+        // --- NEW: COMBINE EXTERNAL DATA (Ext + EOM + CT) ---
+        let ext_od = safe(d, 'external.od.ext');
+        if(safe(d, 'external.od.eom')) ext_od += " | EOM: " + safe(d, 'external.od.eom');
+        if(safe(d, 'external.od.ct_dist')) ext_od += " | CT: " + safe(d, 'external.od.ct_dist');
+        set('ed_ext_od', ext_od);
 
-        set('ed_va_od', safe(d, 'va.od.dist')); set('ed_va_os', safe(d, 'va.os.dist')); set('ed_ph_od', safe(d, 'va.od.ph')); set('ed_ph_os', safe(d, 'va.os.ph')); set('ed_va_near_od', safe(d, 'va.od.near')); set('ed_va_near_os', safe(d, 'va.os.near'));
+        let ext_os = safe(d, 'external.os.ext');
+        if(safe(d, 'external.os.eom')) ext_os += " | EOM: " + safe(d, 'external.os.eom');
+        if(safe(d, 'external.os.ct_dist')) ext_os += " | CT: " + safe(d, 'external.os.ct_dist');
+        set('ed_ext_os', ext_os);
+
+        // --- NEW: COMBINE VA DATA (Dist + Rx) ---
+        let va_od = safe(d, 'va.od.dist');
+        if(safe(d, 'va.od.rx')) va_od += " (w/Rx: " + safe(d, 'va.od.rx') + ")";
+        set('ed_va_od', va_od);
+
+        let va_os = safe(d, 'va.os.dist');
+        if(safe(d, 'va.os.rx')) va_os += " (w/Rx: " + safe(d, 'va.os.rx') + ")";
+        set('ed_va_os', va_os);
+
+        set('ed_ph_od', safe(d, 'va.od.ph')); set('ed_ph_os', safe(d, 'va.os.ph')); set('ed_va_near_od', safe(d, 'va.od.near')); set('ed_va_near_os', safe(d, 'va.os.near'));
         set('ed_rx_sph_od', safe(d, 'refraction.od.sph')); set('ed_rx_cyl_od', safe(d, 'refraction.od.cyl')); set('ed_rx_ax_od', safe(d, 'refraction.od.ax')); set('ed_rx_add_od', safe(d, 'refraction.od.add')); set('ed_rx_va_od', safe(d, 'refraction.od.va'));
         set('ed_rx_sph_os', safe(d, 'refraction.os.sph')); set('ed_rx_cyl_os', safe(d, 'refraction.os.cyl')); set('ed_rx_ax_os', safe(d, 'refraction.os.ax')); set('ed_rx_add_os', safe(d, 'refraction.os.add')); set('ed_rx_va_os', safe(d, 'refraction.os.va'));
         set('ed_sl_lids_od', safe(d, 'slitlamp.od.lids')); set('ed_sl_conj_od', safe(d, 'slitlamp.od.conj')); set('ed_sl_corn_od', safe(d, 'slitlamp.od.corn')); set('ed_sl_ac_od', safe(d, 'slitlamp.od.ac')); set('ed_sl_pupil_od', safe(d, 'slitlamp.od.pupil')); set('ed_sl_lens_od', safe(d, 'slitlamp.lens_od')); set('ed_iop_od', safe(d, 'slitlamp.iop_od'));
@@ -415,12 +468,10 @@
         const eye = document.getElementById('surg_eye').value; 
         const rawDate = document.getElementById('surg_date').value; 
         
-        // --- STRICT MANUAL FORMATTING ---
         let dateStr = "To be decided";
         if(rawDate) {
-            // Manually split YYYY-MM-DD
             const parts = rawDate.split('-');
-            if(parts.length === 3) dateStr = `${parts[2]}/${parts[1]}/${parts[0]}`; // DD/MM/YYYY
+            if(parts.length === 3) dateStr = `${parts[2]}/${parts[1]}/${parts[0]}`; 
         }
         
         const proc = document.getElementById('surg_proc').value; const power = document.getElementById('surg_power').value; const model = document.getElementById('surg_model').value; const notes = document.getElementById('surg_notes').value;
@@ -429,16 +480,52 @@
         win.document.write(content); win.document.close(); closeSurgeryModal();
     }
 
+    // --- UPDATED PRINT (Bi-Lingual + Glasses) ---
     window.printRx = async function() {
         if(!currentVisit) return;
         try { await performSave(); } catch(e) { console.error(e); }
-        const dr = doctorProfiles[loggedInDoctor] || { qual: "", reg: "", desig: "" };
-        const diag = document.getElementById('diagnosis').value || '-'; const adv = document.getElementById('advice').value || '-'; const rawFollowUp = document.getElementById('follow_up_date').value;
-        const showDiag = document.getElementById('chk_diagnosis').checked; const showAdv = document.getElementById('chk_advice').checked; const showMeds = document.getElementById('chk_meds').checked;
-        let medRows = ""; if(showMeds) { document.querySelectorAll('#med-table tbody tr').forEach(tr => { const name = tr.querySelector('.med-name').value; const eye = tr.querySelector('.med-eye').value; if(name) medRows += `<tr><td><strong>${eye}</strong></td><td>${name}</td><td>${tr.querySelector('.med-dose').value}</td><td>${tr.querySelector('.med-freq').value}</td><td>${tr.querySelector('.med-dur').value}</td></tr>`; }); }
         
+        const dr = doctorProfiles[loggedInDoctor] || { qual: "", reg: "", desig: "" };
+        const v = (id) => document.getElementById(id) ? document.getElementById(id).value : '';
+
+        const diag = v('diagnosis') || '-'; 
+        const adv = v('advice') || '-'; 
+        const rawFollowUp = v('follow_up_date');
+        
+        const showDiag = document.getElementById('chk_diagnosis').checked; 
+        const showAdv = document.getElementById('chk_advice').checked; 
+        const showMeds = document.getElementById('chk_meds').checked;
+        const showGlasses = document.getElementById('chk_glasses').checked;
+
+        let medRows = ""; 
+        if(showMeds) { 
+            document.querySelectorAll('#med-table tbody tr').forEach(tr => { 
+                const name = tr.querySelector('.med-name').value; 
+                const eye = tr.querySelector('.med-eye').value; 
+                if(name) medRows += `<tr><td><strong>${eye}</strong></td><td>${name}</td><td>${tr.querySelector('.med-dose').value}</td><td>${tr.querySelector('.med-freq').value}</td><td>${tr.querySelector('.med-dur').value}</td></tr>`; 
+            }); 
+        }
+        
+        // Construct Glasses Table (Only if checked)
+        let glassesTable = "";
+        if(showGlasses) {
+            glassesTable = `
+            <div class="section">
+                <h4>Spectacle Prescription / চশমাৰ প্ৰেছক্ৰিপশ্যন</h4>
+                <table>
+                    <thead>
+                        <tr><th>Eye / চকু</th><th>Sph / গোলক</th><th>Cyl / চুঙা</th><th>Axis / অক্ষ</th><th>Add / ওচৰৰ পাৱাৰ</th><th>VA / দৃষ্টিশক্তি</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><b>Right (OD)</b></td><td>${v('ed_rx_sph_od')}</td><td>${v('ed_rx_cyl_od')}</td><td>${v('ed_rx_ax_od')}</td><td>${v('ed_rx_add_od')}</td><td>${v('ed_rx_va_od')}</td></tr>
+                        <tr><td><b>Left (OS)</b></td><td>${v('ed_rx_sph_os')}</td><td>${v('ed_rx_cyl_os')}</td><td>${v('ed_rx_ax_os')}</td><td>${v('ed_rx_add_os')}</td><td>${v('ed_rx_va_os')}</td></tr>
+                    </tbody>
+                </table>
+            </div>`;
+        }
+
         const win = window.open('', '', 'width=800,height=600');
-        const content = `<html><head><title>Rx</title><base href="${window.location.href}"><style>body{font-family:'Segoe UI',sans-serif;padding:40px;color:#333;}.header-grid{display:grid;grid-template-columns:100px 1fr;gap:20px;align-items:center;border-bottom:3px solid #004085;padding-bottom:15px;margin-bottom:20px;}.header-text{text-align:center;}.header-text h2{margin:0;color:#004085;font-size:24px;text-transform:uppercase;}.header-text p{margin:2px 0;font-size:14px;}.meta{display:flex;justify-content:space-between;margin-bottom:20px;border-bottom:1px solid #ccc;padding-bottom:10px;align-items:flex-start;}.section h4{margin:0 0 8px 0;color:#004085;text-transform:uppercase;font-size:0.9em;border-bottom:1px solid #eee;padding-bottom:3px;display:inline-block;}.content{font-size:1.1em;line-height:1.5;margin-bottom:20px;}table{width:100%;border-collapse:collapse;}th,td{border-bottom:1px solid #ddd;padding:8px;text-align:left;}th{background-color:#f8f9fa;}.footer{margin-top:40px;display:flex;justify-content:space-between;align-items:flex-end;border-top:1px dotted #ccc;padding-top:20px;}</style></head><body onload="setTimeout(function(){window.print()}, 800)"><div class="header-grid"><img src="logo.png" style="width:100px;height:auto;"><div class="header-text"><h2>MSN Cataract and IOL Hospital</h2><p><em>(A unit of Kantashree Community Care)</em></p><p>Tilak Deka Road, Nagaon, Assam, Pin – 782001</p><p>তিলক ডেকা পথ, নগাঁও, অসম - ৭৮২০০১</p><p>Mobile : 8486887503 | Govt. Licence No. – SHA/205</p></div></div><div class="meta"><div style="flex:1;"><strong>Name / নাম:</strong> ${currentVisit.patientName}<br><strong>PID:</strong> ${currentVisit.pid} &nbsp;|&nbsp; <strong>Age/Sex:</strong> ${currentVisit.age}Y/${currentVisit.gender}<br><strong>Date / তাৰিখ:</strong> ${window.formatDate(getTodayISO())}</div><div style="flex:1;text-align:right;"><strong style="font-size:1.1em;color:#004085;">${loggedInDoctor}</strong><br><span style="font-size:0.9em;color:#555;">${dr.qual}</span><br><span style="font-size:0.9em;color:#555;">${dr.reg}</span><br><span style="font-size:0.85em;font-weight:bold;">${dr.desig}</span></div></div>${showDiag ? `<div class="section"><h4>Diagnosis / ৰোগ নিৰ্ণয়</h4><div class="content">${diag.replace(/\n/g, '<br>')}</div></div>` : ''}${showAdv ? `<div class="section"><h4>Advice / পৰামৰ্শ</h4><div class="content">${adv.replace(/\n/g, '<br>')}</div></div>` : ''}${showMeds && medRows ? `<div class="section"><h4>Medicines (Rx) / ঔষধ</h4><table><thead><tr><th>Eye / চকু</th><th>Medicine / ঔষধ</th><th>Dose / মাত্ৰা</th><th>Freq / বাৰ</th><th>Duration / সময়</th></tr></thead><tbody>${medRows}</tbody></table></div>` : ''}${rawFollowUp ? `<div class="section" style="margin-top:20px; border:2px solid #000; padding:10px; display:inline-block;"><strong>Next Visit / পৰৱৰ্তী সাক্ষাৎ:</strong> <span style="font-size:1.2em; font-weight:bold;">${window.formatDate(rawFollowUp)}</span></div>` : ''}<div class="footer"><div style="font-size:0.8em;color:#777;">A Day Eye Care Institution<br>এক দিৱসীয় চকুৰ চিকিৎসা প্ৰতিষ্ঠান</div><div style="text-align:center;">______________________<br><strong>Signature / স্বাক্ষৰ</strong></div></div></body></html>`;
+        const content = `<html><head><title>Rx</title><base href="${window.location.href}"><style>body{font-family:'Segoe UI',sans-serif;padding:40px;color:#333;}.header-grid{display:grid;grid-template-columns:100px 1fr;gap:20px;align-items:center;border-bottom:3px solid #004085;padding-bottom:15px;margin-bottom:20px;}.header-text{text-align:center;}.header-text h2{margin:0;color:#004085;font-size:24px;text-transform:uppercase;}.header-text p{margin:2px 0;font-size:14px;}.meta{display:flex;justify-content:space-between;margin-bottom:20px;border-bottom:1px solid #ccc;padding-bottom:10px;align-items:flex-start;}.section{margin-bottom:15px;}.section h4{margin:0 0 8px 0;color:#004085;text-transform:uppercase;font-size:0.9em;border-bottom:1px solid #eee;padding-bottom:3px;display:inline-block;}.content{font-size:1.1em;line-height:1.5;}table{width:100%;border-collapse:collapse;}th,td{border-bottom:1px solid #ddd;padding:8px;text-align:left;}th{background-color:#f8f9fa;}.footer{margin-top:40px;display:flex;justify-content:space-between;align-items:flex-end;border-top:1px dotted #ccc;padding-top:20px;}</style></head><body onload="setTimeout(function(){window.print()}, 800)"><div class="header-grid"><img src="logo.png" style="width:100px;height:auto;"><div class="header-text"><h2>MSN Cataract and IOL Hospital</h2><p><em>(A unit of Kantashree Community Care)</em></p><p>Tilak Deka Road, Nagaon, Assam, Pin – 782001</p><p>তিলক ডেকা পথ, নগাঁও, অসম - ৭৮২০০১</p><p>Mobile : 8486887503 | Govt. Licence No. – SHA/205</p></div></div><div class="meta"><div style="flex:1;"><strong>Name / নাম:</strong> ${currentVisit.patientName}<br><strong>PID:</strong> ${currentVisit.pid} &nbsp;|&nbsp; <strong>Age/Sex:</strong> ${currentVisit.age}Y/${currentVisit.gender}<br><strong>Date / তাৰিখ:</strong> ${window.formatDate(getTodayISO())}</div><div style="flex:1;text-align:right;"><strong style="font-size:1.1em;color:#004085;">${loggedInDoctor}</strong><br><span style="font-size:0.9em;color:#555;">${dr.qual}</span><br><span style="font-size:0.9em;color:#555;">${dr.reg}</span><br><span style="font-size:0.85em;font-weight:bold;">${dr.desig}</span></div></div>${showDiag ? `<div class="section"><h4>Diagnosis / ৰোগ নিৰ্ণয়</h4><div class="content">${diag.replace(/\n/g, '<br>')}</div></div>` : ''}${glassesTable}${showAdv ? `<div class="section"><h4>Advice / পৰামৰ্শ</h4><div class="content">${adv.replace(/\n/g, '<br>')}</div></div>` : ''}${showMeds && medRows ? `<div class="section"><h4>Medicines (Rx) / ঔষধ</h4><table><thead><tr><th>Eye / চকু</th><th>Medicine / ঔষধ</th><th>Dose / মাত্ৰা</th><th>Freq / বাৰ</th><th>Duration / সময়</th></tr></thead><tbody>${medRows}</tbody></table></div>` : ''}${rawFollowUp ? `<div class="section" style="margin-top:20px; border:2px solid #000; padding:10px; display:inline-block;"><strong>Next Visit / পৰৱৰ্তী সাক্ষাৎ:</strong> <span style="font-size:1.2em; font-weight:bold;">${window.formatDate(rawFollowUp)}</span></div>` : ''}<div class="footer"><div style="font-size:0.8em;color:#777;">A Day Eye Care Institution<br>এক দিৱসীয় চকুৰ চিকিৎসা প্ৰতিষ্ঠান</div><div style="text-align:center;">______________________<br><strong>Signature / স্বাক্ষৰ</strong></div></div></body></html>`;
         win.document.write(content); win.document.close();
     };
 </script>
