@@ -11,16 +11,9 @@
         .search-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end; }
         .loading { color: #007bff; font-weight: bold; text-align: center; padding: 10px; }
         .hidden { display: none !important; }
-        
-        /* Warning Box Style */
-        .warning-box { 
-            background: #fff3cd; color: #856404; padding: 10px; border: 1px solid #ffeeba; 
-            border-radius: 6px; margin-bottom: 15px; font-weight: bold; 
-            display: none; align-items: center; gap: 10px; 
-        }
+        .warning-box { background: #fff3cd; color: #856404; padding: 10px; border: 1px solid #ffeeba; border-radius: 6px; margin-bottom: 15px; font-weight: bold; display: none; align-items: center; gap: 10px; }
         .warning-box.active { display: flex; }
-
-        /* STATUS BADGE COLORS */
+        .badge { padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; color: white; display: inline-block; }
         .badge.waiting { background-color: #ffc107; color: #333; }       
         .badge.doc { background-color: #0d6efd; color: #fff; }           
         .badge.investigation { background-color: #fd7e14; color: #fff; } 
@@ -51,9 +44,7 @@
     </div>
 
     <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px;">
-        
         <div style="display:flex; flex-direction:column; gap:20px;">
-            
             <section class="card" style="border-top: 4px solid #ffc107;">
                 <h3>1. Search Patient</h3>
                 <p class="text-muted" style="margin-bottom:10px;">Search by <strong>Patient ID</strong> or <strong>Phone</strong> to edit/visit.</p>
@@ -67,34 +58,26 @@
 
             <section class="card" style="border-top: 4px solid #007bff;">
                 <h3 style="margin-bottom: 15px;">2. Patient Details</h3>
-                
                 <div id="age-warning-box" class="warning-box"></div>
-
                 <form id="registrationForm" onsubmit="return false;">
                     <div class="row">
                         <div class="col"><label>Patient ID (Auto)</label><input id="patient_id" type="text" placeholder="New" readonly style="background:#e8f0fe; color:#1967d2; font-weight:bold; border:1px solid #1967d2;"></div>
                         <div class="col"><label>Date of Birth</label><input id="dob" type="date" onchange="calculateAge(this.value)"></div>
                     </div>
-
                     <div class="row">
                         <div class="col wide"><label>Full Name <span style="color:red">*</span></label><input id="name" type="text" required placeholder="Enter Name" autocomplete="off"></div>
                         <div class="col"><label>Age</label><input id="age" type="number" placeholder="0" style="width:60px;" oninput="checkAge(this.value)"></div>
                         <div class="col"><label>Sex</label><select id="gender"><option>Male</option><option>Female</option><option>Other</option></select></div>
                     </div>
-
                     <div class="row">
                         <div class="col wide"><label>Guardian / Care of</label><input id="guardian" type="text" placeholder="S/O, W/O..."></div>
                         <div class="col"><label>Phone <span style="color:red">*</span></label><input id="phone" type="tel" required maxlength="10"></div>
                     </div>
-
                     <div class="row">
                         <div class="col narrow"><label>Pin</label><input id="pincode" type="text" placeholder="782..."></div>
                         <div class="col"><label>District</label><input id="district" type="text" value="Nagaon"></div>
-                        <div class="col wide"><label>Address</label><input id="address" type="text" list="local-places" placeholder="Village/Town">
-                            <datalist id="local-places"></datalist>
-                        </div>
+                        <div class="col wide"><label>Address</label><input id="address" type="text" list="local-places" placeholder="Village/Town"><datalist id="local-places"></datalist></div>
                     </div>
-
                     <div class="row" style="background: #e9f7ef; padding: 10px; border: 1px solid #c3e6cb; border-radius:4px;">
                         <div class="col wide">
                             <label style="color:#155724; font-weight:bold;">Assign Doctor</label>
@@ -109,7 +92,6 @@
                         <div class="col"><label>Type</label><select id="visit_type"><option>New Case</option><option>Review / Follow-up</option><option>Surgery</option></select></div>
                         <div class="col"><label>Reg. Fee (₹)</label><input id="fee" type="number" value="500"></div>
                     </div>
-
                     <div class="actions" style="margin-top:15px; display:flex; gap:10px;">
                         <button type="button" class="btn" id="saveBtn" onclick="savePatient()">💾 Save Registration</button>
                         <button type="button" id="printLastBtn" class="btn warning hidden" onclick="printLastSlip()">🖨️ Print Slip</button>
@@ -125,13 +107,11 @@
                 <h3>Today's OPD List</h3>
                 <div style="font-size:0.8em; color:green; display:flex; align-items:center; gap:5px;"><span style="height:8px; width:8px; background:green; border-radius:50%; display:inline-block;"></span> Live Sync Active</div>
             </div>
-            
             <table id="patients-table" style="margin-top:15px;">
                 <thead><tr><th style="width: 100px;">OPD No.</th><th style="width: 80px;">PID</th><th>Name</th><th>Doctor</th><th>Status</th><th>Actions</th></tr></thead>
                 <tbody><tr><td colspan="6" class="loading">Connecting to Cloud...</td></tr></tbody>
             </table>
         </section>
-
     </div>
 </div>
 
@@ -148,250 +128,114 @@
     let lastSavedData = null; 
     const nagaonPlaces = ["Nagaon Town", "Haibargaon", "Raha", "Kampur", "Dhing", "Rupahi", "Samaguri", "Kaliabor", "Jakhalabandha", "Hojai", "Lanka", "Doboka", "Lumding", "Batadrava", "Juria", "Kathiatoli", "Puranigudam", "Uriumgaon", "Nonoi", "Barhampur", "Chapanala"];
 
-    // --- INITIALIZATION ---
     window.addEventListener('load', async () => {
         const dl = document.getElementById('local-places');
         nagaonPlaces.forEach(p => { const o = document.createElement('option'); o.value = p; dl.appendChild(o); });
-        
-        // FIX 1: UPDATE TOTAL PATIENTS COUNT
-        try {
-            const coll = collection(db, "patients");
-            const snapshot = await getCountFromServer(coll);
-            document.getElementById('stat-total').innerText = snapshot.data().count;
-        } catch (e) { console.log("Count Error", e); }
+        try { const coll = collection(db, "patients"); const snapshot = await getCountFromServer(coll); document.getElementById('stat-total').innerText = snapshot.data().count; } catch (e) {}
     });
 
-    function getTodayISO() {
-        const d = new Date();
-        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-    }
+    function getTodayISO() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 
-    // --- LIVE LOAD VISITS ---
     const q = query(collection(db, "visits"), where("isoDate", "==", getTodayISO()));
     
     onSnapshot(q, (snapshot) => {
         todayVisits = [];
         const tbody = document.querySelector('#patients-table tbody');
         tbody.innerHTML = '';
+        snapshot.docs.forEach(doc => { todayVisits.push({...doc.data(), id: doc.id}); });
         
-        snapshot.docs.forEach(doc => {
-            const data = doc.data();
-            todayVisits.push({...data, id: doc.id});
-        });
-
-        // Sort by OPD ID (Numeric safely)
-        todayVisits.sort((a,b) => {
-            // Extract number from "OPD-5" -> 5
-            const numA = parseInt(a.opdId.replace(/^\D+/g, '')) || 0;
-            const numB = parseInt(b.opdId.replace(/^\D+/g, '')) || 0;
-            return numA - numB;
-        });
+        // Sort by Time (FIFO)
+        todayVisits.sort((a,b) => (a.timestamp || 0) - (b.timestamp || 0));
         
         document.getElementById('stat-today').innerText = todayVisits.length;
-
         if (todayVisits.length === 0) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px;">No patients yet today.</td></tr>'; return; }
 
         todayVisits.forEach(v => {
             const tr = document.createElement('tr');
             let badgeClass = 'waiting';
-            const s = v.status;
-            if(s === 'With Doctor') badgeClass = 'doc';
-            else if(s === 'Investigation') badgeClass = 'investigation';
-            else if(s === 'Report Ready') badgeClass = 'report';
-            else if(s === 'Completed') badgeClass = 'completed';
+            if(v.status === 'With Doctor') badgeClass = 'doc';
+            else if(v.status === 'Investigation') badgeClass = 'investigation';
+            else if(v.status === 'Report Ready') badgeClass = 'report';
+            else if(v.status === 'Completed') badgeClass = 'completed';
 
             tr.innerHTML = `<td><strong>${v.opdId}</strong></td><td>${v.pid}</td><td>${v.patientName}<br><small>${v.age}Y / ${v.gender}</small></td><td>${v.doctor || '-'}</td><td><span class="badge ${badgeClass}">${v.status}</span></td><td><button class="btn small info" onclick="window.printSlip('${v.patientName}', '${v.opdId}', '${v.doctor}', '${v.pid}', '${v.age}', '${v.gender}')">🖨️ Slip</button></td>`;
             tbody.appendChild(tr);
         });
-    }, (error) => { console.error("Error fetching visits:", error); document.querySelector('#patients-table tbody').innerHTML = `<tr><td colspan="6" style="color:red;text-align:center;">Error loading data. Check internet.</td></tr>`; });
+    });
 
-    // --- SEARCH PATIENT ---
     window.searchPatient = async function() {
         const pid = document.getElementById('search_pid').value.trim().toUpperCase();
         const phone = document.getElementById('search_phone').value.trim();
-        const resDiv = document.getElementById('search-result');
-        resDiv.innerHTML = 'Loading...';
-
+        const resDiv = document.getElementById('search-result'); resDiv.innerHTML = 'Loading...';
         let q;
-        // FIX 5: Ensure phone is searched as String
         if(pid) q = query(collection(db, "patients"), where("id", "==", pid));
         else if(phone) q = query(collection(db, "patients"), where("phone", "==", String(phone))); 
         else { resDiv.innerHTML = ''; return; }
 
         try {
-            const snap = await getDocs(q);
-            resDiv.innerHTML = '';
+            const snap = await getDocs(q); resDiv.innerHTML = '';
             if(snap.empty) { resDiv.innerHTML = '<div style="padding:10px; color:red;">No patient found.</div>'; return; }
-
             snap.forEach(doc => {
-                const p = doc.data();
-                const div = document.createElement('li');
-                div.innerHTML = `<strong>${p.name}</strong> (${p.id}) - ${p.phone}`;
-                div.onclick = () => fillForm(p);
-                resDiv.appendChild(div);
+                const p = doc.data(); const div = document.createElement('li');
+                div.innerHTML = `<strong>${p.name}</strong> (${p.id}) - ${p.phone}`; div.onclick = () => fillForm(p); resDiv.appendChild(div);
             });
-        } catch (e) {
-            resDiv.innerHTML = '<div style="color:red">Error searching database.</div>';
-        }
+        } catch (e) { resDiv.innerHTML = '<div style="color:red">Error searching database.</div>'; }
     }
 
     function fillForm(p) {
-        document.getElementById('patient_id').value = p.id;
-        document.getElementById('name').value = p.name;
-        document.getElementById('age').value = p.age;
-        document.getElementById('dob').value = p.dob || ''; // Load DOB
-        document.getElementById('gender').value = p.gender;
-        document.getElementById('phone').value = p.phone;
-        document.getElementById('address').value = p.address || '';
-        document.getElementById('guardian').value = p.guardian || '';
-        document.getElementById('district').value = p.district || 'Nagaon';
-        document.getElementById('pincode').value = p.pincode || ''; // Load Pin
-        document.getElementById('visit_type').value = "Review / Follow-up";
-        document.getElementById('fee').value = "300"; 
-        
-        document.getElementById('updateBtn').classList.remove('hidden');
-        document.getElementById('search-result').innerHTML = '';
-        window.checkAge(p.age);
+        document.getElementById('patient_id').value = p.id; document.getElementById('name').value = p.name; document.getElementById('age').value = p.age; document.getElementById('dob').value = p.dob || ''; document.getElementById('gender').value = p.gender; document.getElementById('phone').value = p.phone; document.getElementById('address').value = p.address || ''; document.getElementById('guardian').value = p.guardian || ''; document.getElementById('district').value = p.district || 'Nagaon'; document.getElementById('pincode').value = p.pincode || ''; document.getElementById('visit_type').value = "Review / Follow-up"; document.getElementById('fee').value = "300"; 
+        document.getElementById('updateBtn').classList.remove('hidden'); document.getElementById('search-result').innerHTML = ''; window.checkAge(p.age);
     }
 
-    // --- SAVE PATIENT ---
     window.savePatient = async function() {
-        const name = document.getElementById('name').value;
-        const phone = document.getElementById('phone').value;
-        const doctor = document.getElementById('assigned_doctor').value;
-
+        const name = document.getElementById('name').value; const phone = document.getElementById('phone').value; const doctor = document.getElementById('assigned_doctor').value;
         if(!name || !phone || !doctor) { alert("Please fill Name, Phone, and select a Doctor."); return; }
-        // FIX 6: Strict Phone Validation
         if(!/^\d{10}$/.test(phone)) { alert("Phone number must be exactly 10 digits."); return; }
 
-        const btn = document.getElementById('saveBtn');
-        btn.innerText = "Processing..."; btn.disabled = true;
-
+        const btn = document.getElementById('saveBtn'); btn.innerText = "Processing..."; btn.disabled = true;
         try {
-            const pidInput = document.getElementById('patient_id').value;
-            const age = document.getElementById('age').value;
-            const gender = document.getElementById('gender').value;
-            const dob = document.getElementById('dob').value;
-            
-            const isNew = !pidInput || pidInput === 'New' || pidInput === '';
-            let finalPid = pidInput;
+            const pidInput = document.getElementById('patient_id').value; const age = document.getElementById('age').value; const gender = document.getElementById('gender').value; const dob = document.getElementById('dob').value;
+            const isNew = !pidInput || pidInput === 'New' || pidInput === ''; let finalPid = pidInput;
             
             if(isNew) {
-                // FIX 2: Safe ID Generation (Timestamp suffix ensures uniqueness)
-                // "P" + Year + Random 4 digits
-                const yr = new Date().getFullYear().toString().substr(-2);
-                const rnd = Math.floor(1000 + Math.random() * 9000);
-                finalPid = `P-${yr}${rnd}`; 
-                
-                // FIX 6: Include DOB in Save
-                await setDoc(doc(db, "patients", finalPid), {
-                    id: finalPid, name, age, gender, phone: String(phone), dob,
-                    address: document.getElementById('address').value,
-                    guardian: document.getElementById('guardian').value,
-                    district: document.getElementById('district').value,
-                    pincode: document.getElementById('pincode').value,
-                    createdAt: new Date().toISOString()
-                });
+                const yr = new Date().getFullYear().toString().substr(-2); const rnd = Math.floor(1000 + Math.random() * 9000); finalPid = `P-${yr}${rnd}`; 
+                await setDoc(doc(db, "patients", finalPid), { id: finalPid, name, age, gender, phone: String(phone), dob, address: document.getElementById('address').value, guardian: document.getElementById('guardian').value, district: document.getElementById('district').value, pincode: document.getElementById('pincode').value, createdAt: new Date().toISOString() });
             }
 
-            // FIX 3: Safe OPD ID (Sequential per day is hard without transactions, 
-            // but for a small clinic, Length + 1 is usually fine if traffic is low. 
-            // Adding a timestamp suffix prevents collisions if 2 desks save at exact same time)
-            const opdBase = todayVisits.length + 1;
-            const opdId = `${opdBase}`; 
-
+            const opdBase = todayVisits.length + 1; const opdId = `${opdBase}`; 
+            // IMPORTANT: Address is now saved in the visit for easy access by Doctor/Opto
             await addDoc(collection(db, "visits"), {
                 pid: finalPid, patientName: name, age, gender, phone: String(phone),
+                address: document.getElementById('address').value, // <--- SAVING ADDRESS HERE
                 doctor, opdId, status: "Waiting",
-                date: new Date().toLocaleDateString('en-GB'),
-                isoDate: getTodayISO(),
-                type: document.getElementById('visit_type').value,
-                fee: document.getElementById('fee').value,
-                timestamp: Date.now()
+                date: new Date().toLocaleDateString('en-GB'), isoDate: getTodayISO(),
+                type: document.getElementById('visit_type').value, fee: document.getElementById('fee').value, timestamp: Date.now()
             });
 
             alert("✅ Saved! OPD ID: " + opdId);
-            
-            lastSavedData = { name, opdId, doctor, pid: finalPid, age, gender };
-            document.getElementById('printLastBtn').classList.remove('hidden'); 
-            document.getElementById('saveBtn').innerText = "Saved ✅";
-
+            lastSavedData = { name, opdId, doctor, pid: finalPid, age, gender }; document.getElementById('printLastBtn').classList.remove('hidden'); document.getElementById('saveBtn').innerText = "Saved ✅";
         } catch(e) { alert("Error: " + e.message); btn.innerText = "💾 Save Registration"; btn.disabled = false; } 
     }
 
-    window.printLastSlip = function() {
-        if(!lastSavedData) return;
-        window.printSlip(lastSavedData.name, lastSavedData.opdId, lastSavedData.doctor, lastSavedData.pid, lastSavedData.age, lastSavedData.gender);
-        if(confirm("Slip Printed. Clear form for next patient?")) {
-            resetForm();
-        }
-    };
-
-    // FIX 7: Full Update Function
+    window.printLastSlip = function() { if(!lastSavedData) return; window.printSlip(lastSavedData.name, lastSavedData.opdId, lastSavedData.doctor, lastSavedData.pid, lastSavedData.age, lastSavedData.gender); if(confirm("Slip Printed. Clear form?")) resetForm(); };
     window.updatePatientOnly = async function() {
-        const pid = document.getElementById('patient_id').value;
-        if(!pid || pid === 'New') return;
-        
+        const pid = document.getElementById('patient_id').value; if(!pid || pid === 'New') return;
         try {
             const btn = document.getElementById('updateBtn'); btn.innerText = "Updating...";
-            await updateDoc(doc(db, "patients", pid), {
-                name: document.getElementById('name').value,
-                age: document.getElementById('age').value,
-                phone: String(document.getElementById('phone').value),
-                gender: document.getElementById('gender').value,
-                dob: document.getElementById('dob').value,
-                address: document.getElementById('address').value,
-                district: document.getElementById('district').value,
-                pincode: document.getElementById('pincode').value,
-                guardian: document.getElementById('guardian').value
-            });
-            alert("Patient Details Updated!");
-            btn.innerText = "Update Details";
+            await updateDoc(doc(db, "patients", pid), { name: document.getElementById('name').value, age: document.getElementById('age').value, phone: String(document.getElementById('phone').value), gender: document.getElementById('gender').value, dob: document.getElementById('dob').value, address: document.getElementById('address').value, district: document.getElementById('district').value, pincode: document.getElementById('pincode').value, guardian: document.getElementById('guardian').value });
+            alert("Patient Details Updated!"); btn.innerText = "Update Details";
         } catch(e) { alert(e.message); }
     }
 
-    // FIX 9: Safer Print Logic
     window.printSlip = function(name, opd, docName, pid, age, sex) {
         const win = window.open('', '', 'width=400,height=500');
         win.document.write(`<html><body style="font-family:sans-serif; text-align:center; padding:20px;"><img src="logo.png" style="width:80px;"><h3>MSN Cataract & IOL Hospital</h3><p>OPD SLIP</p><hr><h1 style="font-size:3em; margin:10px 0;">${opd}</h1><p><strong>Date:</strong> ${new Date().toLocaleDateString('en-GB')}</p><p><strong>Name:</strong> ${name}</p><p><strong>PID:</strong> ${pid} &nbsp;|&nbsp; <strong>${age}Y / ${sex}</strong></p><p><strong>Doctor:</strong> ${docName}</p><hr><small>Please wait for your turn.</small></body></html>`);
-        
-        // Wait for content to load before printing
-        win.document.close();
-        win.onload = function() {
-            win.print();
-            win.close();
-        };
+        win.document.close(); win.onload = function() { win.print(); win.close(); };
     }
 
-    window.resetForm = function() {
-        document.getElementById('registrationForm').reset();
-        document.getElementById('patient_id').value = "";
-        document.getElementById('search-result').innerHTML = "";
-        document.getElementById('updateBtn').classList.add('hidden');
-        document.getElementById('printLastBtn').classList.add('hidden'); 
-        document.getElementById('saveBtn').innerText = "💾 Save Registration";
-        document.getElementById('saveBtn').disabled = false;
-        document.getElementById('age-warning-box').className = "warning-box";
-        lastSavedData = null;
-    }
-
-    window.calculateAge = function(dob) {
-        if(!dob) return;
-        const d = new Date(dob);
-        const diff = Date.now() - d.getTime();
-        const age = Math.abs(new Date(diff).getUTCFullYear() - 1970);
-        document.getElementById('age').value = age;
-        window.checkAge(age);
-    }
-
-    window.checkAge = function(age) {
-        const box = document.getElementById('age-warning-box');
-        if(!age) { box.className="warning-box"; return; }
-        if(age < 12) { box.innerText = "⚠️ Paediatric Patient (Child)"; box.className="warning-box active"; }
-        else if(age >= 60) { box.innerText = "⚠️ Senior Citizen"; box.className="warning-box active"; }
-        else { box.className="warning-box"; }
-    }
+    window.resetForm = function() { document.getElementById('registrationForm').reset(); document.getElementById('patient_id').value = ""; document.getElementById('search-result').innerHTML = ""; document.getElementById('updateBtn').classList.add('hidden'); document.getElementById('printLastBtn').classList.add('hidden'); document.getElementById('saveBtn').innerText = "💾 Save Registration"; document.getElementById('saveBtn').disabled = false; document.getElementById('age-warning-box').className = "warning-box"; lastSavedData = null; }
+    window.calculateAge = function(dob) { if(!dob) return; const d = new Date(dob); const diff = Date.now() - d.getTime(); const age = Math.abs(new Date(diff).getUTCFullYear() - 1970); document.getElementById('age').value = age; window.checkAge(age); }
+    window.checkAge = function(age) { const box = document.getElementById('age-warning-box'); if(!age) { box.className="warning-box"; return; } if(age < 12) { box.innerText = "⚠️ Paediatric Patient (Child)"; box.className="warning-box active"; } else if(age >= 60) { box.innerText = "⚠️ Senior Citizen"; box.className="warning-box active"; } else { box.className="warning-box"; } }
 </script>
-
 </body>
 </html>

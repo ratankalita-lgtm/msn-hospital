@@ -187,6 +187,9 @@
             return isToday && (v.status === 'Waiting' || v.status === 'Investigation');
         });
         if (queue.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px;">No patients waiting.</td></tr>'; return; }
+        
+        // SORT BY TIME
+        queue.sort((a,b) => (a.timestamp || 0) - (b.timestamp || 0));
 
         queue.forEach(v => {
             const patientData = allPatients.find(p => p.id === v.pid);
@@ -196,7 +199,10 @@
             let statusBadge = `<span class="status-waiting">${v.status}</span>`;
             if(v.status === 'Investigation') statusBadge = `<span class="status-investigation">Investigation</span>`;
 
-            tr.innerHTML = `<td><strong>${v.opdId}</strong></td><td>${v.pid}</td><td>${v.patientName}</td><td>${address}</td><td>${v.age}Y/${v.gender}</td><td>${statusBadge}</td><td><button class="btn small" onclick="window.loadPatient('${v.firebaseId}')">Workup</button></td>`;
+            // Using v.address from updated reception.html if available, fallback to lookup
+            const displayAddr = v.address || address;
+
+            tr.innerHTML = `<td><strong>${v.opdId}</strong></td><td>${v.pid}</td><td>${v.patientName}</td><td>${displayAddr}</td><td>${v.age}Y/${v.gender}</td><td>${statusBadge}</td><td><button class="btn small" onclick="window.loadPatient('${v.firebaseId}')">Workup</button></td>`;
             tbody.appendChild(tr);
         });
     }

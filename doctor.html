@@ -21,10 +21,13 @@
         .status-ready { background: #d4edda; color: #155724; padding: 2px 8px; border-radius: 12px; font-size:0.8em; font-weight: bold; }
         .dilation-badge { background: #e0cffc; color: #5e35b1; padding: 4px 10px; border-radius: 12px; font-size:0.8em; font-weight: bold; margin-left: 10px; border: 1px solid #b39ddb; }
         .warning-box { background: #fff3cd; color: #856404; padding: 10px; border: 1px solid #ffeeba; border-radius: 6px; margin-bottom: 15px; font-weight: bold; display: flex; align-items: center; gap: 10px; }
+        
+        /* Queue Table Styling */
         table { width: 100%; border-collapse: separate; border-spacing: 0; }
         th { background: #f8f9fa; color: #495057; padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6; }
         td { padding: 12px; border-bottom: 1px solid #dee2e6; vertical-align: middle; }
         tr:hover { background-color: #f8f9fa; }
+
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
         .modal-content { background-color: #fff; margin: 5% auto; padding: 20px; border-radius: 8px; width: 500px; max-width: 90%; }
         .modal-header { font-size: 1.2em; font-weight: bold; margin-bottom: 15px; display: flex; justify-content: space-between; }
@@ -38,14 +41,29 @@
 <body>
 <div class="container">
     <header class="hospital-header">
-        <img src="logo.png" alt="Logo" class="hospital-logo" onerror="this.style.display='none'">
+        <img src="logo.jpg" alt="Logo" class="hospital-logo" onerror="this.style.display='none'">
         <div><h2>Doctor Console</h2><p class="text-muted" id="welcome-msg">Welcome</p></div>
         <button class="btn ghost small" onclick="logout()" style="margin-left:auto;">Change Doctor</button>
     </header>
+
     <section id="doc-queue-section" class="card">
         <div style="display:flex; justify-content:space-between; align-items:center;"><h3>My Patients Queue</h3><div id="connection-status" style="font-size:0.8em; color:orange;">● Connecting...</div></div>
-        <table id="doc-queue" style="margin-top:10px;"><thead><tr><th>OPD</th><th>Patient</th><th>Type</th><th>Status</th><th>Action</th></tr></thead><tbody><tr><td colspan="5" style="text-align:center; padding:20px;">Initializing Database...</td></tr></tbody></table>
+        <table id="doc-queue" style="margin-top:10px;">
+            <thead>
+                <tr>
+                    <th style="width:50px;">OPD</th>
+                    <th style="width:90px;">PID</th>
+                    <th>Name</th>
+                    <th style="width:80px;">Age/Sex</th>
+                    <th>Address</th>
+                    <th style="width:100px;">Status</th>
+                    <th style="width:80px;">Action</th>
+                </tr>
+            </thead>
+            <tbody><tr><td colspan="7" style="text-align:center; padding:20px;">Initializing Database...</td></tr></tbody>
+        </table>
     </section>
+
     <section id="consult-section" class="hidden">
         <div style="background: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #007bff;">
             <div style="display:flex; align-items:center;"><div><h2 id="p-name" style="margin:0; color:#333; font-size: 1.5em;">-</h2><small id="p-info" style="color:#777; font-size: 0.95em;">PID: -</small></div><span id="dilation-alert" class="dilation-badge hidden">💧 Dilated</span></div>
@@ -53,9 +71,12 @@
         </div>
         <div id="age-warning-box" class="warning-box hidden"></div>
         <div id="investigation-result-box" class="hidden" style="background:#d4edda; color:#155724; padding:15px; border:1px solid #c3e6cb; border-radius:8px; margin-bottom:20px;"><strong>🧪 Investigation Report Available:</strong><p id="inv-report-text" style="margin:5px 0 0 0; white-space: pre-wrap; font-weight:bold;"></p></div>
+        
         <form onsubmit="event.preventDefault(); window.printRx();">
             <div class="section-box"><div class="section-header">1. History & Background (Editable)</div><div class="row"><div class="col"><label>Chief Complaint</label><textarea id="ed_cc" rows="2"></textarea></div><div class="col"><label>Ocular History</label><textarea id="ed_oh" rows="2"></textarea></div></div><div class="row"><div class="col"><label>Systemic Diseases / Allergies</label><input id="ed_sys" type="text"></div></div><div style="margin-top: 15px;"><label style="color:#007bff;">Previous Glasses (PGP)</label><div class="pgp-grid" style="background: #f8f9fa; padding: 5px; font-weight: bold; font-size: 0.8em; text-align: center; border-radius:4px;"><div>Eye</div><div>Sph</div><div>Cyl</div><div>Axis</div><div>Add</div></div><div class="pgp-grid"><div style="font-weight:bold; text-align:center; color:#d60000;">OD</div><input id="ed_pgp_sph_od" class="small-input od-input"><input id="ed_pgp_cyl_od" class="small-input od-input"><input id="ed_pgp_ax_od" class="small-input od-input"><input id="ed_pgp_add_od" class="small-input od-input"></div><div class="pgp-grid"><div style="font-weight:bold; text-align:center; color:#004085;">OS</div><input id="ed_pgp_sph_os" class="small-input os-input"><input id="ed_pgp_cyl_os" class="small-input os-input"><input id="ed_pgp_ax_os" class="small-input os-input"><input id="ed_pgp_add_os" class="small-input os-input"></div></div><div style="margin-top: 15px;"><label style="color:#007bff;">External Exam</label><div class="row" style="gap: 10px;"><div class="col"><input id="ed_ext_od" class="od-input" placeholder="OD External"></div><div class="col"><input id="ed_ext_os" class="os-input" placeholder="OS External"></div></div></div></div>
+            
             <div class="section-box"><div class="section-header">2. Clinical Findings</div><div style="display:grid; grid-template-columns: 1fr 1fr; gap:30px;"><div><h5 style="margin:0 0 10px 0; color:#555;">Visual Acuity</h5><div class="compact-grid header"><div>Test</div><div>OD</div><div>OS</div></div><div class="compact-grid"><div>Dist</div><input id="ed_va_od" class="small-input od-input"><input id="ed_va_os" class="small-input os-input"></div><div class="compact-grid"><div>Near</div><input id="ed_va_near_od" class="small-input od-input"><input id="ed_va_near_os" class="small-input os-input"></div><div class="compact-grid"><div>PH</div><input id="ed_ph_od" class="small-input od-input"><input id="ed_ph_os" class="small-input os-input"></div><div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; margin-bottom:10px;"><h5 style="margin:0; color:#555;">Refraction (Final)</h5><button type="button" class="btn small info" onclick="printGlassesSlipOnly()">🖨️ Glasses Slip Only</button></div><div class="pgp-grid" style="background:#f1f3f5; font-weight:bold; font-size:0.8em; text-align:center;"><div>Eye</div><div>Sph</div><div>Cyl</div><div>Axis</div><div>VA</div></div><div class="pgp-grid"><div style="font-weight:bold; text-align:center; color:#d60000;">OD</div><input id="ed_rx_sph_od" class="small-input od-input"><input id="ed_rx_cyl_od" class="small-input od-input"><input id="ed_rx_ax_od" type="number" min="1" max="180" class="small-input od-input"><input id="ed_rx_va_od" class="small-input od-input"></div><div class="pgp-grid"><div style="font-weight:bold; text-align:center; color:#004085;">OS</div><input id="ed_rx_sph_os" class="small-input os-input"><input id="ed_rx_cyl_os" class="small-input os-input"><input id="ed_rx_ax_os" type="number" min="1" max="180" class="small-input os-input"><input id="ed_rx_va_os" class="small-input os-input"></div><div class="pgp-grid" style="margin-top:5px;"><div style="font-size:0.8em; font-weight:bold;">Add</div><input id="ed_rx_add_od" class="small-input od-input" placeholder="OD Add"><input id="ed_rx_add_os" class="small-input os-input" placeholder="OS Add"><div></div><div></div></div></div><div><h5 style="margin:0 0 10px 0; color:#555;">Slit Lamp Examination</h5><div class="compact-grid header"><div>Part</div><div>OD</div><div>OS</div></div><div class="compact-grid"><div>Lids</div><input id="ed_sl_lids_od" class="small-input od-input"><input id="ed_sl_lids_os" class="small-input os-input"></div><div class="compact-grid"><div>Conj</div><input id="ed_sl_conj_od" class="small-input od-input"><input id="ed_sl_conj_os" class="small-input os-input"></div><div class="compact-grid"><div>Cornea</div><input id="ed_sl_corn_od" class="small-input od-input"><input id="ed_sl_corn_os" class="small-input os-input"></div><div class="compact-grid"><div>AC</div><input id="ed_sl_ac_od" class="small-input od-input"><input id="ed_sl_ac_os" class="small-input os-input"></div><div class="compact-grid"><div>Pupil</div><input id="ed_sl_pupil_od" class="small-input od-input"><input id="ed_sl_pupil_os" class="small-input os-input"></div><div class="compact-grid"><div>Lens</div><input id="ed_sl_lens_od" class="small-input od-input"><input id="ed_sl_lens_os" class="small-input os-input"></div><div class="compact-grid" style="background:#fff3cd; padding:5px; border-radius:4px; margin-top:5px;"><div style="font-weight:bold; color:#856404;">IOP</div><input id="ed_iop_od" class="small-input od-input" style="font-weight:bold;"><input id="ed_iop_os" class="small-input os-input" style="font-weight:bold;"></div><div style="margin-top:10px;"><label style="font-size:0.9em;">Remarks</label><input id="ed_sl_remarks" class="small-input" style="text-align:left;"></div></div></div></div>
+            
             <div class="section-box" style="border-top: 5px solid #28a745;">
                 <div class="section-header">3. Diagnosis & Treatment</div>
                 <div class="row"><div class="col"><div style="display:flex; justify-content:space-between; margin-bottom:5px;"><label>Diagnosis</label><label class="print-control"><input type="checkbox" id="chk_diagnosis" checked> Print</label></div><textarea id="diagnosis" rows="2"></textarea></div></div>
@@ -69,6 +90,7 @@
                 
                 <table id="med-table" style="width:100%; margin-bottom:10px;"><thead><tr><th style="width:110px;">Eye</th><th>Medicine</th><th>Dose</th><th>Freq</th><th>Dur</th><th style="width:30px;"></th></tr></thead><tbody></tbody></table><button type="button" class="btn small" onclick="window.addMedRow()">+ Add Medicine</button><div class="row" style="margin-top:25px; padding-top:15px; border-top:1px dashed #ccc; align-items:center;"><div class="col" style="flex:0 0 150px;"><label>Follow-up Date:</label></div><div class="col"><input type="date" id="follow_up_date" style="max-width: 200px;"></div></div>
             </div>
+            
             <div style="display:grid; grid-template-columns: 1fr 1fr 1.5fr; gap:10px; margin-bottom:50px;">
                 <button type="button" class="btn" onclick="window.sendToInvestigation()" style="background-color: #ffc107; color: #000; border:none; padding:15px; font-size:1.1em;">🔬 Order Inv.</button>
                 <button type="button" class="btn" onclick="openSurgeryModal()" style="background-color: #dc3545; color: white; border:none; padding:15px; font-size:1.1em;">🔪 Surgery Slip</button>
@@ -77,9 +99,12 @@
         </form>
     </section>
 </div>
+
 <div id="surgeryModal" class="modal"><div class="modal-content"><div class="modal-header"><span>Generate Admission Slip</span><span class="close-modal" onclick="closeSurgeryModal()">×</span></div><div class="row"><div class="col"><label>Eye</label><select id="surg_eye"><option>Right Eye (OD)</option><option>Left Eye (OS)</option></select></div><div class="col"><label>Admission Date</label><input type="date" id="surg_date"></div></div><div class="row"><div class="col"><label>Procedure</label><input id="surg_proc" value="Phacoemulsification + IOL Implantation"></div></div><div class="row"><div class="col"><label>IOL Power</label><input id="surg_power" placeholder="+21.0 D"></div><div class="col"><label>IOL Model</label><input id="surg_model" placeholder="Alcon AcrySof / Indian"></div></div><div class="row"><div class="col"><label>Pre-op Instructions</label><textarea id="surg_notes" rows="2">Start Moxifloxacin Eye Drops 4 times/day 1 day prior to surgery.</textarea></div></div><button class="btn" onclick="printAdmissionSlip()" style="width:100%; margin-top:10px;">Print Admission Slip</button></div></div>
+
 <datalist id="med-list"><option value="Moxifloxacin Eye Drop"></option><option value="Prednisolone Acetate"></option><option value="Carboxymethylcellulose (CMC)"></option><option value="Timolol Maleate"></option><option value="Nepafenac Eye Drop"></option><option value="Tropicamide + Phenylephrine"></option><option value="Atropine Ointment"></option><option value="Ciprofloxacin"></option><option value="Multivitamin Tablet"></option><option value="Paracetamol 500mg"></option><option value="Olopatadine Eye Drop"></option><option value="Brimonidine Tartrate"></option><option value="Dorzolamide"></option><option value="Latanoprost"></option><option value="Sodium Hyaluronate"></option></datalist>
 <datalist id="freq-list"><option value="1-0-1"></option><option value="1-1-1"></option><option value="1-0-0"></option><option value="0-0-1"></option><option value="0-1-0"></option><option value="SOS"></option><option value="HS (Bedtime)"></option><option value="Once a week"></option><option value="4 Times/Day"></option><option value="6 Times/Day"></option><option value="Every 2 Hours"></option></datalist>
+
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, doc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -89,7 +114,6 @@
     let db_visits = []; let currentVisit = null; let loggedInDoctor = "";
     const doctorProfiles = { "Dr. Jayanta Boroowa": { qual: "D.O.M.S", reg: "Regd. No – 7048", desig: "Medical Director" }, "Dr. Pratibha Chauhan Paul": { qual: "M.B.B.S., D.O.M.S.", reg: "Regd. No. AMC 25792", desig: "Fellow in Comprehensive Ophthalmology, Oculoplasty & Orbit" }, "Dr. Nilutpal Borah": { qual: "MS", reg: "Regd. No. 10139", desig: "Specialist Medical Retina & Diabetic Eye Diseases" }, "Dr. Nilakshi Baruah": { qual: "M.B.B.S., M.S., F.M.R.F", reg: "Regd. No. 17425", desig: "Fellow of Cornea, Anterior Segment & Refractive Surgery" }, "Dr. Sanjay Kr Buragohain": { qual: "MS, DNB", reg: "Regd. No. 11863", desig: "Specialist Neuro–Ophthalmology & Glaucoma" } };
     
-    // --- HELPERS ---
     window.formatDate = function(dateString) { if(!dateString) return ""; if (typeof dateString === 'string' && dateString.includes('-')) { const parts = dateString.split('-'); if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`; } const d = new Date(dateString); if(isNaN(d.getTime())) return dateString; return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; }
     function getTodayISO() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
     function checkAgeWarnings(age) { const box = document.getElementById('age-warning-box'); box.classList.add('hidden'); box.innerText = ""; if(!age) return; const numAge = parseInt(age); if(isNaN(numAge)) return; if(numAge < 12) { box.innerText = "⚠ Paediatric patient (Below 12 years)"; box.classList.remove('hidden'); } else if(numAge >= 60) { box.innerText = "⚠ Senior citizen patient (60 years or above)"; box.classList.remove('hidden'); } }
@@ -126,11 +150,16 @@
             const isValidStatus = ['Waiting', 'With Doctor', 'Report Ready', 'Investigation'].includes(v.status);
             return isToday && isValidStatus && v.doctor === loggedInDoctor; 
         });
-        if(queue.length === 0) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px;">No patients found today.</td></tr>'; return; }
+        if(queue.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px;">No patients found today.</td></tr>'; return; }
+        
+        // SORT BY TIME
+        queue.sort((a,b) => (a.timestamp || 0) - (b.timestamp || 0));
+
         queue.forEach(v => {
             const tr = document.createElement('tr');
             let statusBadge = v.status; if(v.status === 'Report Ready') statusBadge = `<span class="status-ready">Report Ready</span>`; if(v.status === 'Investigation') statusBadge = `<span class="status-investigation">Investigation</span>`; if(v.status === 'With Doctor') tr.style.background = "#e8f0fe";
-            tr.innerHTML = `<td>${v.opdId}</td><td><strong>${v.patientName}</strong><br><small>${v.age}Y/${v.gender}</small></td><td>${v.type}</td><td>${statusBadge}</td><td><button class="btn small" onclick="window.startConsult('${v.opdId}')">${v.status === 'With Doctor' ? 'Resume' : 'Consult'}</button></td>`;
+            // FIXED TABLE COLUMNS
+            tr.innerHTML = `<td>${v.opdId}</td><td>${v.pid}</td><td><strong>${v.patientName}</strong></td><td>${v.age}</td><td>${v.address || '-'}</td><td>${statusBadge}</td><td><button class="btn small" onclick="window.startConsult('${v.opdId}')">${v.status === 'With Doctor' ? 'Resume' : 'Consult'}</button></td>`;
             tbody.appendChild(tr);
         });
     }
@@ -155,10 +184,21 @@
         set('ed_cc', safe(d, 'history.complaint')); set('ed_oh', safe(d, 'history.ocular_hx'));
         let sys = safe(d, 'history.systemic'); if(safe(d, 'history.allergies')) sys += " / " + safe(d, 'history.allergies'); set('ed_sys', sys);
         set('ed_pgp_sph_od', safe(d, 'pgp.od.sph')); set('ed_pgp_cyl_od', safe(d, 'pgp.od.cyl')); set('ed_pgp_ax_od', safe(d, 'pgp.od.ax')); set('ed_pgp_add_od', safe(d, 'pgp.od.add')); set('ed_pgp_sph_os', safe(d, 'pgp.os.sph')); set('ed_pgp_cyl_os', safe(d, 'pgp.os.cyl')); set('ed_pgp_ax_os', safe(d, 'pgp.os.ax')); set('ed_pgp_add_os', safe(d, 'pgp.os.add')); 
-        let ext_od = safe(d, 'external.od.ext'); if(safe(d, 'external.od.eom')) ext_od += " | EOM: " + safe(d, 'external.od.eom'); if(safe(d, 'external.od.ct_dist')) ext_od += " | CT: " + safe(d, 'external.od.ct_dist'); set('ed_ext_od', ext_od);
-        let ext_os = safe(d, 'external.os.ext'); if(safe(d, 'external.os.eom')) ext_os += " | EOM: " + safe(d, 'external.os.eom'); if(safe(d, 'external.os.ct_dist')) ext_os += " | CT: " + safe(d, 'external.os.ct_dist'); set('ed_ext_os', ext_os);
+        
+        // DATA MERGING FIX
+        let ext_od = safe(d, 'external.od.ext'); 
+        if(safe(d, 'external.od.eom')) ext_od += " | EOM: " + safe(d, 'external.od.eom'); 
+        if(safe(d, 'external.od.ct_dist')) ext_od += " | CT: " + safe(d, 'external.od.ct_dist'); 
+        set('ed_ext_od', ext_od);
+
+        let ext_os = safe(d, 'external.os.ext'); 
+        if(safe(d, 'external.os.eom')) ext_os += " | EOM: " + safe(d, 'external.os.eom'); 
+        if(safe(d, 'external.os.ct_dist')) ext_os += " | CT: " + safe(d, 'external.os.ct_dist'); 
+        set('ed_ext_os', ext_os);
+
         let va_od = safe(d, 'va.od.dist'); if(safe(d, 'va.od.rx')) va_od += " (w/Rx: " + safe(d, 'va.od.rx') + ")"; set('ed_va_od', va_od);
         let va_os = safe(d, 'va.os.dist'); if(safe(d, 'va.os.rx')) va_os += " (w/Rx: " + safe(d, 'va.os.rx') + ")"; set('ed_va_os', va_os);
+        
         set('ed_ph_od', safe(d, 'va.od.ph')); set('ed_ph_os', safe(d, 'va.os.ph')); set('ed_va_near_od', safe(d, 'va.od.near')); set('ed_va_near_os', safe(d, 'va.os.near'));
         set('ed_rx_sph_od', safe(d, 'refraction.od.sph')); set('ed_rx_cyl_od', safe(d, 'refraction.od.cyl')); set('ed_rx_ax_od', safe(d, 'refraction.od.ax')); set('ed_rx_add_od', safe(d, 'refraction.od.add')); set('ed_rx_va_od', safe(d, 'refraction.od.va')); set('ed_rx_sph_os', safe(d, 'refraction.os.sph')); set('ed_rx_cyl_os', safe(d, 'refraction.os.cyl')); set('ed_rx_ax_os', safe(d, 'refraction.os.ax')); set('ed_rx_add_os', safe(d, 'refraction.os.add')); set('ed_rx_va_os', safe(d, 'refraction.os.va'));
         set('ed_sl_lids_od', safe(d, 'slitlamp.od.lids')); set('ed_sl_conj_od', safe(d, 'slitlamp.od.conj')); set('ed_sl_corn_od', safe(d, 'slitlamp.od.corn')); set('ed_sl_ac_od', safe(d, 'slitlamp.od.ac')); set('ed_sl_pupil_od', safe(d, 'slitlamp.od.pupil')); set('ed_sl_lens_od', safe(d, 'slitlamp.lens_od')); set('ed_iop_od', safe(d, 'slitlamp.iop_od')); set('ed_sl_lids_os', safe(d, 'slitlamp.os.lids')); set('ed_sl_conj_os', safe(d, 'slitlamp.os.conj')); set('ed_sl_corn_os', safe(d, 'slitlamp.os.corn')); set('ed_sl_ac_os', safe(d, 'slitlamp.os.ac')); set('ed_sl_pupil_os', safe(d, 'slitlamp.os.pupil')); set('ed_sl_lens_os', safe(d, 'slitlamp.lens_os')); set('ed_iop_os', safe(d, 'slitlamp.iop_os')); set('ed_sl_remarks', safe(d, 'slitlamp.remarks'));
@@ -188,12 +228,21 @@
         const ids = ['ed_cc','ed_oh','ed_sys','ed_pgp_sph_od','ed_pgp_cyl_od','ed_pgp_ax_od','ed_pgp_add_od','ed_pgp_sph_os','ed_pgp_cyl_os','ed_pgp_ax_os','ed_pgp_add_os','ed_ext_od','ed_ext_os','ed_va_od','ed_va_os','ed_ph_od','ed_ph_os','ed_va_near_od','ed_va_near_os','ed_rx_sph_od','ed_rx_cyl_od','ed_rx_ax_od','ed_rx_add_od','ed_rx_va_od','ed_rx_sph_os','ed_rx_cyl_os','ed_rx_ax_os','ed_rx_add_os','ed_rx_va_os','ed_sl_lids_od','ed_sl_conj_od','ed_sl_corn_od','ed_sl_ac_od','ed_sl_pupil_od','ed_sl_lens_od','ed_iop_od','ed_sl_lids_os','ed_sl_conj_os','ed_sl_corn_os','ed_sl_ac_os','ed_sl_pupil_os','ed_sl_lens_os','ed_iop_os','ed_sl_remarks'];
         const paths = ['history.complaint','history.ocular_hx','history.systemic','pgp.od.sph','pgp.od.cyl','pgp.od.ax','pgp.od.add','pgp.os.sph','pgp.os.cyl','pgp.os.ax','pgp.os.add','external.od.ext','external.os.ext','va.od.dist','va.os.dist','va.od.ph','va.os.ph','va.od.near','va.os.near','refraction.od.sph','refraction.od.cyl','refraction.od.ax','refraction.od.add','refraction.od.va','refraction.os.sph','refraction.os.cyl','refraction.os.ax','refraction.os.add','refraction.os.va','slitlamp.od.lids','slitlamp.od.conj','slitlamp.od.corn','slitlamp.od.ac','slitlamp.od.pupil','slitlamp.lens_od','slitlamp.iop_od','slitlamp.os.lids','slitlamp.os.conj','slitlamp.os.corn','slitlamp.os.ac','slitlamp.os.pupil','slitlamp.lens_os','slitlamp.iop_os','slitlamp.remarks'];
         ids.forEach((id, i) => set(updatedOpto, paths[i], document.getElementById(id).value));
+        
+        if(updatedOpto.external) { 
+            if(updatedOpto.external.od) { updatedOpto.external.od.eom = ""; updatedOpto.external.od.ct_dist = ""; } 
+            if(updatedOpto.external.os) { updatedOpto.external.os.eom = ""; updatedOpto.external.os.ct_dist = ""; }
+        }
+        if(updatedOpto.va) {
+            if(updatedOpto.va.od) updatedOpto.va.od.rx = "";
+            if(updatedOpto.va.os) updatedOpto.va.os.rx = "";
+        }
+
         try { await updateDoc(doc(db, "visits", currentVisit.firebaseId), { optoData: updatedOpto, doctorData: { diagnosis: document.getElementById('diagnosis').value, advice: document.getElementById('advice').value, followUp: document.getElementById('follow_up_date').value, meds }, status: "Completed" }); if(!silent) console.log("Saved."); } catch(e) { if(!silent) alert("Save Failed: " + e.message); }
     }
 
     window.sendToInvestigation = async function() { const invName = prompt("Enter Investigation Required:"); if(!invName) return; try { await updateDoc(doc(db, "visits", currentVisit.firebaseId), { status: "Investigation", investigationRequest: invName, investigationReport: "" }); alert("Sent to Optometrist."); window.cancelConsult(); } catch(e) { alert(e.message); } };
     
-    // --- MAIN PRINT RX (INCLUDES GLASSES IF CHECKED) ---
     window.printRx = async function() {
         if(!currentVisit) return;
         try { await performSave(); } catch(e) { console.error(e); }
@@ -211,11 +260,10 @@
         }
 
         const win = window.open('', '', 'width=800,height=600');
-        const content = `<html><head><title>Rx</title><base href="${window.location.href}"><style>body{font-family:'Segoe UI',sans-serif;padding:40px;color:#333;}.header-grid{display:grid;grid-template-columns:100px 1fr;gap:20px;align-items:center;border-bottom:3px solid #004085;padding-bottom:15px;margin-bottom:20px;}.header-text{text-align:center;}.header-text h2{margin:0;color:#004085;font-size:24px;text-transform:uppercase;}.header-text p{margin:2px 0;font-size:14px;}.meta{display:flex;justify-content:space-between;margin-bottom:20px;border-bottom:1px solid #ccc;padding-bottom:10px;align-items:flex-start;}.section{margin-bottom:15px;}.section h4{margin:0 0 8px 0;color:#004085;text-transform:uppercase;font-size:0.9em;border-bottom:1px solid #eee;padding-bottom:3px;display:inline-block;}.content{font-size:1.1em;line-height:1.5;}table{width:100%;border-collapse:collapse;}th,td{border-bottom:1px solid #ddd;padding:8px;text-align:left;}th{background-color:#f8f9fa;}.footer{margin-top:40px;display:flex;justify-content:space-between;align-items:flex-end;border-top:1px dotted #ccc;padding-top:20px;}</style></head><body onload="setTimeout(function(){window.print()}, 800)"><div class="header-grid"><img src="logo.png" style="width:100px;height:auto;"><div class="header-text"><h2>MSN Cataract and IOL Hospital</h2><p><em>(A unit of Kantashree Community Care)</em></p><p>Tilak Deka Road, Nagaon, Assam, Pin – 782001</p><p>তিলক ডেকা পথ, নগাঁও, অসম - ৭৮২০০১</p><p>Mobile : 8486887503 | Govt. Licence No. – SHA/205</p></div></div><div class="meta"><div style="flex:1;"><strong>Name / নাম:</strong> ${currentVisit.patientName}<br><strong>PID:</strong> ${currentVisit.pid} &nbsp;|&nbsp; <strong>Age/Sex:</strong> ${currentVisit.age}Y/${currentVisit.gender}<br><strong>Date / তাৰিখ:</strong> ${window.formatDate(getTodayISO())}</div><div style="flex:1;text-align:right;"><strong style="font-size:1.1em;color:#004085;">${loggedInDoctor}</strong><br><span style="font-size:0.9em;color:#555;">${dr.qual}</span><br><span style="font-size:0.9em;color:#555;">${dr.reg}</span><br><span style="font-size:0.85em;font-weight:bold;">${dr.desig}</span></div></div>${showDiag ? `<div class="section"><h4>Diagnosis / ৰোগ নিৰ্ণয়</h4><div class="content">${diag.replace(/\n/g, '<br>')}</div></div>` : ''}${glassesTable}${showAdv ? `<div class="section"><h4>Advice / পৰামৰ্শ</h4><div class="content">${adv.replace(/\n/g, '<br>')}</div></div>` : ''}${showMeds && medRows ? `<div class="section"><h4>Medicines (Rx) / ঔষধ</h4><table><thead><tr><th>Eye / চকু</th><th>Medicine / ঔষধ</th><th>Dose / মাত্ৰা</th><th>Freq / বাৰ</th><th>Duration / সময়</th></tr></thead><tbody>${medRows}</tbody></table></div>` : ''}${rawFollowUp ? `<div class="section" style="margin-top:20px; border:2px solid #000; padding:10px; display:inline-block;"><strong>Next Visit / পৰৱৰ্তী সাক্ষাৎ:</strong> <span style="font-size:1.2em; font-weight:bold;">${window.formatDate(rawFollowUp)}</span></div>` : ''}<div class="footer"><div style="font-size:0.8em;color:#777;">A Day Eye Care Institution<br>এক দিৱসীয় চকুৰ চিকিৎসা প্ৰতিষ্ঠান</div><div style="text-align:center;">______________________<br><strong>Signature / স্বাক্ষৰ</strong></div></div></body></html>`;
+        const content = `<html><head><title>Rx</title><base href="${window.location.href}"><style>body{font-family:'Segoe UI',sans-serif;padding:40px;color:#333;}.header-grid{display:grid;grid-template-columns:100px 1fr;gap:20px;align-items:center;border-bottom:3px solid #004085;padding-bottom:15px;margin-bottom:20px;}.header-text{text-align:center;}.header-text h2{margin:0;color:#004085;font-size:24px;text-transform:uppercase;}.header-text p{margin:2px 0;font-size:14px;}.meta{display:flex;justify-content:space-between;margin-bottom:20px;border-bottom:1px solid #ccc;padding-bottom:10px;align-items:flex-start;}.section{margin-bottom:15px;}.section h4{margin:0 0 8px 0;color:#004085;text-transform:uppercase;font-size:0.9em;border-bottom:1px solid #eee;padding-bottom:3px;display:inline-block;}.content{font-size:1.1em;line-height:1.5;}table{width:100%;border-collapse:collapse;}th,td{border-bottom:1px solid #ddd;padding:8px;text-align:left;}th{background-color:#f8f9fa;}.footer{margin-top:40px;display:flex;justify-content:space-between;align-items:flex-end;border-top:1px dotted #ccc;padding-top:20px;}</style></head><body onload="setTimeout(function(){window.print()}, 800)"><div class="header-grid"><img src="logo.jpg" style="width:100px;height:auto;"><div class="header-text"><h2>MSN Cataract and IOL Hospital</h2><p><em>(A unit of Kantashree Community Care)</em></p><p>Tilak Deka Road, Nagaon, Assam, Pin – 782001</p><p>তিলক ডেকা পথ, নগাঁও, অসম - ৭৮২০০১</p><p>Mobile : 8486887503 | Govt. Licence No. – SHA/205</p></div></div><div class="meta"><div style="flex:1;"><strong>Name / নাম:</strong> ${currentVisit.patientName}<br><strong>PID:</strong> ${currentVisit.pid} &nbsp;|&nbsp; <strong>Age/Sex:</strong> ${currentVisit.age}Y/${currentVisit.gender}<br><strong>Date / তাৰিখ:</strong> ${window.formatDate(getTodayISO())}</div><div style="flex:1;text-align:right;"><strong style="font-size:1.1em;color:#004085;">${loggedInDoctor}</strong><br><span style="font-size:0.9em;color:#555;">${dr.qual}</span><br><span style="font-size:0.9em;color:#555;">${dr.reg}</span><br><span style="font-size:0.85em;font-weight:bold;">${dr.desig}</span></div></div>${showDiag ? `<div class="section"><h4>Diagnosis / ৰোগ নিৰ্ণয়</h4><div class="content">${diag.replace(/\n/g, '<br>')}</div></div>` : ''}${glassesTable}${showAdv ? `<div class="section"><h4>Advice / পৰামৰ্শ</h4><div class="content">${adv.replace(/\n/g, '<br>')}</div></div>` : ''}${showMeds && medRows ? `<div class="section"><h4>Medicines (Rx) / ঔষধ</h4><table><thead><tr><th>Eye / চকু</th><th>Medicine / ঔষধ</th><th>Dose / মাত্ৰা</th><th>Freq / বাৰ</th><th>Duration / সময়</th></tr></thead><tbody>${medRows}</tbody></table></div>` : ''}${rawFollowUp ? `<div class="section" style="margin-top:20px; border:2px solid #000; padding:10px; display:inline-block;"><strong>Next Visit / পৰৱৰ্তী সাক্ষাৎ:</strong> <span style="font-size:1.2em; font-weight:bold;">${window.formatDate(rawFollowUp)}</span></div>` : ''}<div class="footer"><div style="font-size:0.8em;color:#777;">A Day Eye Care Institution<br>এক দিৱসীয় চকুৰ চিকিৎসা প্ৰতিষ্ঠান</div><div style="text-align:center;">______________________<br><strong>Signature / স্বাক্ষৰ</strong></div></div></body></html>`;
         win.document.write(content); win.document.close();
     };
 
-    // --- NEW: PRINT GLASSES SLIP ONLY (Small 1/4 Page Slip) ---
     window.printGlassesSlipOnly = function() {
         if(!currentVisit) return;
         const v = (id) => document.getElementById(id) ? document.getElementById(id).value : '';
@@ -225,7 +273,7 @@
         
         const content = `<html><head><title>Glasses Rx</title><style>body{font-family:sans-serif;padding:30px;} table{width:100%;border-collapse:collapse;margin-top:20px;} th, td{border:1px solid #000;padding:12px;text-align:center;}</style></head><body onload="setTimeout(function(){window.print();window.close()}, 800)">
             <div style="text-align:center;border-bottom:3px solid #004085;padding-bottom:10px;margin-bottom:20px;">
-                <img src="logo.png" style="width:100px;">
+                <img src="logo.jpg" style="width:100px;">
                 <h2 style="color:#004085;margin:0;">MSN Cataract and IOL Hospital</h2>
                 <p>Tilak Deka Road, Nagaon | Phone: 8486887503</p>
             </div>
@@ -245,7 +293,7 @@
         let dateStr = "To be decided"; if(rawDate) { const parts = rawDate.split('-'); if(parts.length === 3) dateStr = `${parts[2]}/${parts[1]}/${parts[0]}`; }
         const proc = document.getElementById('surg_proc').value; const power = document.getElementById('surg_power').value; const model = document.getElementById('surg_model').value; const notes = document.getElementById('surg_notes').value;
         const win = window.open('', '', 'width=800,height=600');
-        const content = `<html><head><title>Admission</title><style>body{font-family:'Segoe UI',sans-serif;padding:40px;color:#333;}.header-grid{display:grid;grid-template-columns:100px 1fr;gap:20px;align-items:center;border-bottom:3px solid #dc3545;padding-bottom:15px;margin-bottom:20px;}.header-text{text-align:center;}.header-text h2{margin:0;color:#dc3545;font-size:24px;text-transform:uppercase;}.table{width:100%;border-collapse:collapse;margin-top:20px;}.table td{padding:12px;border:1px solid #ddd;font-size:1.1em;}.label{font-weight:bold;background:#f8f9fa;width:30%;}</style></head><body onload="window.print()"><div class="header-grid"><img src="logo.png" style="width:100px;"><div class="header-text"><h2>MSN Cataract and IOL Hospital</h2><p>Tilak Deka Road, Nagaon, Assam | Phone: 8486887503</p></div></div><h2 style="text-align:center;text-decoration:underline;">ADMISSION ADVICE</h2><table class="table"><tr><td class="label">Patient Name</td><td>${currentVisit.patientName}</td></tr><tr><td class="label">Age / Sex</td><td>${currentVisit.age} / ${currentVisit.gender}</td></tr><tr><td class="label">Planned Surgery</td><td><b>${proc}</b></td></tr><tr><td class="label">Eye</td><td><b>${eye}</b></td></tr><tr><td class="label">IOL Power</td><td><b>${power}</b></td></tr><tr><td class="label">IOL Model</td><td><b>${model}</b></td></tr><tr><td class="label">Date of Surgery</td><td><b>${dateStr}</b></td></tr><tr><td class="label">Instructions</td><td>${notes}</td></tr></table><div style="margin-top:50px;text-align:right;"><strong>${loggedInDoctor}</strong><br>Signature</div></body></html>`;
+        const content = `<html><head><title>Admission</title><style>body{font-family:'Segoe UI',sans-serif;padding:40px;color:#333;}.header-grid{display:grid;grid-template-columns:100px 1fr;gap:20px;align-items:center;border-bottom:3px solid #dc3545;padding-bottom:15px;margin-bottom:20px;}.header-text{text-align:center;}.header-text h2{margin:0;color:#dc3545;font-size:24px;text-transform:uppercase;}.table{width:100%;border-collapse:collapse;margin-top:20px;}.table td{padding:12px;border:1px solid #ddd;font-size:1.1em;}.label{font-weight:bold;background:#f8f9fa;width:30%;}</style></head><body onload="window.print()"><div class="header-grid"><img src="logo.jpg" style="width:100px;"><div class="header-text"><h2>MSN Cataract and IOL Hospital</h2><p>Tilak Deka Road, Nagaon, Assam | Phone: 8486887503</p></div></div><h2 style="text-align:center;text-decoration:underline;">ADMISSION ADVICE</h2><table class="table"><tr><td class="label">Patient Name</td><td>${currentVisit.patientName}</td></tr><tr><td class="label">Age / Sex</td><td>${currentVisit.age} / ${currentVisit.gender}</td></tr><tr><td class="label">Planned Surgery</td><td><b>${proc}</b></td></tr><tr><td class="label">Eye</td><td><b>${eye}</b></td></tr><tr><td class="label">IOL Power</td><td><b>${power}</b></td></tr><tr><td class="label">IOL Model</td><td><b>${model}</b></td></tr><tr><td class="label">Date of Surgery</td><td><b>${dateStr}</b></td></tr><tr><td class="label">Instructions</td><td>${notes}</td></tr></table><div style="margin-top:50px;text-align:right;"><strong>${loggedInDoctor}</strong><br>Signature</div></body></html>`;
         win.document.write(content); win.document.close(); closeSurgeryModal();
     }
 </script>
