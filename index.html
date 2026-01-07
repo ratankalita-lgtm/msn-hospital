@@ -5,15 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MSN Hospital - Portal</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
         .container { text-align: center; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 900px; width: 95%; }
         .logo { max-height: 80px; margin-bottom: 20px; }
         h1 { color: #007bff; margin-bottom: 10px; }
         p { color: #666; margin-bottom: 30px; }
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
-        .card { background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 8px; padding: 25px; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; justify-content: space-between; }
-        a.card:hover { transform: translateY(-5px); border-color: #007bff; box-shadow: 0 5px 15px rgba(0,123,255,0.15); }
-        a { text-decoration: none; color: inherit; }
+        .card { background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 8px; padding: 25px; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; justify-content: space-between; text-decoration: none; color: inherit; cursor: pointer; }
+        .card:hover { transform: translateY(-5px); border-color: #007bff; box-shadow: 0 5px 15px rgba(0,123,255,0.15); }
         .icon { font-size: 35px; margin-bottom: 10px; }
         .role-name { font-weight: bold; font-size: 1.2em; color: #333; }
         .role-desc { font-size: 0.9em; color: #777; margin-top: 5px; margin-bottom: 15px; }
@@ -27,16 +26,24 @@
         <img src="logo.png" alt="MSN Hospital" class="logo" onerror="this.style.display='none'">
         <h1>MSN Cataract & IOL Hospital</h1>
         <p>Select your department to login</p>
+        
         <div class="grid">
-            <a href="reception.html" class="card"><div><div class="icon">🖥️</div><div class="role-name">Reception</div><div class="role-desc">Patient Registration</div></div></a>
-            <a href="optometrist.html" class="card"><div><div class="icon">👁️</div><div class="role-name">Optometrist</div><div class="role-desc">Workup & Refraction</div></div></a>
+            <a href="reception.html" class="card">
+                <div><div class="icon">🖥️</div><div class="role-name">Reception</div><div class="role-desc">Patient Registration & Slips</div></div>
+            </a>
             
-            <a href="records.html" class="card"><div><div class="icon">📂</div><div class="role-name">Records</div><div class="role-desc">Search History</div></div></a>
+            <a href="optometrist.html" class="card">
+                <div><div class="icon">👁️</div><div class="role-name">Optometrist</div><div class="role-desc">Workup & Refraction</div></div>
+            </a>
+            
+            <a href="records.html" class="card">
+                <div><div class="icon">📂</div><div class="role-name">Records</div><div class="role-desc">Search Patient History</div></div>
+            </a>
 
-            <div class="card" style="border-color: #007bff; background: #f0f7ff;">
+            <div class="card" style="border-color: #007bff; background: #f0f7ff; cursor: default;">
                 <div class="icon">🩺</div>
                 <div class="role-name">Doctor Login</div>
-                <div class="role-desc">Select your name to enter</div>
+                <div class="role-desc">Select name & enter PIN</div>
                 <select id="doc_select">
                     <option value="">-- Select Name --</option>
                     <option value="Dr. Jayanta Boroowa">Dr. Jayanta Boroowa</option>
@@ -48,16 +55,26 @@
                 <button class="login-btn" onclick="loginDoctor()">Enter Console</button>
             </div>
         </div>
-        <p style="margin-top:30px; font-size:0.8em; color:#aaa;">© 2026 MSN Hospital System</p>
+        
+        <p style="margin-top:30px; font-size:0.8em; color:#aaa;">© 2026 MSN Hospital System v2.0</p>
     </div>
+
     <script>
         function loginDoctor() {
             const name = document.getElementById('doc_select').value;
             if (!name) { alert("Please select your name first."); return; }
+            
             const pin = prompt("Enter Security PIN for " + name);
-            if(pin !== "1234") { alert("Incorrect PIN."); return; }
-            localStorage.setItem('loggedInDoctor', name);
-            window.location.href = 'doctor.html';
+            if (!pin) return;
+
+            // Simple Base64 check for "1234" to prevent casual 'Inspect Element' reading
+            // btoa("1234") === "MTIzNA=="
+            if (btoa(pin) === "MTIzNA==") {
+                localStorage.setItem('loggedInDoctor', name);
+                window.location.href = 'doctor.html';
+            } else {
+                alert("❌ Incorrect PIN. Access Denied.");
+            }
         }
     </script>
 </body>

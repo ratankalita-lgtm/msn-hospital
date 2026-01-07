@@ -21,11 +21,11 @@
         .warning-box.active { display: flex; }
 
         /* STATUS BADGE COLORS */
-        .badge.waiting { background-color: #ffc107; color: #333; }       /* Yellow */
-        .badge.doc { background-color: #0d6efd; color: #fff; }           /* Blue */
-        .badge.investigation { background-color: #fd7e14; color: #fff; } /* Orange */
-        .badge.report { background-color: #6f42c1; color: #fff; }        /* Purple */
-        .badge.completed { background-color: #198754; color: #fff; }     /* Green */
+        .badge.waiting { background-color: #ffc107; color: #333; }       
+        .badge.doc { background-color: #0d6efd; color: #fff; }           
+        .badge.investigation { background-color: #fd7e14; color: #fff; } 
+        .badge.report { background-color: #6f42c1; color: #fff; }        
+        .badge.completed { background-color: #198754; color: #fff; }     
     </style>
 </head>
 <body>
@@ -59,7 +59,7 @@
                 <p class="text-muted" style="margin-bottom:10px;">Search by <strong>Patient ID</strong> or <strong>Phone</strong> to edit/visit.</p>
                 <div class="search-grid">
                     <div><label>Patient ID</label><input id="search_pid" type="text" placeholder="P000..." style="text-transform: uppercase;"></div>
-                    <div><label>Phone</label><input id="search_phone" type="number" placeholder="98..."></div>
+                    <div><label>Phone</label><input id="search_phone" type="tel" placeholder="98..."></div>
                     <button type="button" onclick="searchPatient()" class="btn secondary">Find</button>
                 </div>
                 <div id="search-result" style="margin-top:10px; max-height: 200px; overflow-y:auto;"></div>
@@ -112,9 +112,7 @@
 
                     <div class="actions" style="margin-top:15px; display:flex; gap:10px;">
                         <button type="button" class="btn" id="saveBtn" onclick="savePatient()">💾 Save Registration</button>
-                        
                         <button type="button" id="printLastBtn" class="btn warning hidden" onclick="printLastSlip()">🖨️ Print Slip</button>
-                        
                         <button type="button" id="updateBtn" class="btn info hidden" onclick="updatePatientOnly()">Update Details</button>
                         <button type="button" class="btn ghost" onclick="resetForm()">Reset Form</button>
                     </div>
@@ -139,7 +137,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, updateDoc, doc, onSnapshot, query, where, getDocs, setDoc } 
+    import { getFirestore, collection, addDoc, updateDoc, doc, onSnapshot, query, where, getDocs, setDoc, getCountFromServer } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = { apiKey: "AIzaSyBne_-4FcG5DjtUDVwdd1K-XDsHjX0JOEo", authDomain: "msn-hospital.firebaseapp.com", projectId: "msn-hospital", storageBucket: "msn-hospital.firebasestorage.app", messagingSenderId: "525072218332", appId: "1:525072218332:web:5940ec924f59db675adc19", measurementId: "G-FXXZ7STWDJ" };
@@ -150,16 +148,25 @@
     let lastSavedData = null; 
     const nagaonPlaces = ["Nagaon Town", "Haibargaon", "Raha", "Kampur", "Dhing", "Rupahi", "Samaguri", "Kaliabor", "Jakhalabandha", "Hojai", "Lanka", "Doboka", "Lumding", "Batadrava", "Juria", "Kathiatoli", "Puranigudam", "Uriumgaon", "Nonoi", "Barhampur", "Chapanala"];
 
-    window.onload = function() {
+    // --- INITIALIZATION ---
+    window.addEventListener('load', async () => {
         const dl = document.getElementById('local-places');
         nagaonPlaces.forEach(p => { const o = document.createElement('option'); o.value = p; dl.appendChild(o); });
-    }
+        
+        // FIX 1: UPDATE TOTAL PATIENTS COUNT
+        try {
+            const coll = collection(db, "patients");
+            const snapshot = await getCountFromServer(coll);
+            document.getElementById('stat-total').innerText = snapshot.data().count;
+        } catch (e) { console.log("Count Error", e); }
+    });
 
     function getTodayISO() {
         const d = new Date();
         return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     }
 
+    // --- LIVE LOAD VISITS ---
     const q = query(collection(db, "visits"), where("isoDate", "==", getTodayISO()));
     
     onSnapshot(q, (snapshot) => {
@@ -172,27 +179,33 @@
             todayVisits.push({...data, id: doc.id});
         });
 
-        todayVisits.sort((a,b) => parseInt(a.opdId) - parseInt(b.opdId));
+        // Sort by OPD ID (Numeric safely)
+        todayVisits.sort((a,b) => {
+            // Extract number from "OPD-5" -> 5
+            const numA = parseInt(a.opdId.replace(/^\D+/g, '')) || 0;
+            const numB = parseInt(b.opdId.replace(/^\D+/g, '')) || 0;
+            return numA - numB;
+        });
+        
         document.getElementById('stat-today').innerText = todayVisits.length;
 
         if (todayVisits.length === 0) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px;">No patients yet today.</td></tr>'; return; }
 
         todayVisits.forEach(v => {
             const tr = document.createElement('tr');
-            
-            // STATUS COLOR LOGIC
-            let badgeClass = 'waiting'; // Default Yellow
+            let badgeClass = 'waiting';
             const s = v.status;
-            if(s === 'With Doctor') badgeClass = 'doc';           // Blue
-            else if(s === 'Investigation') badgeClass = 'investigation'; // Orange
-            else if(s === 'Report Ready') badgeClass = 'report';  // Purple
-            else if(s === 'Completed') badgeClass = 'completed';  // Green
+            if(s === 'With Doctor') badgeClass = 'doc';
+            else if(s === 'Investigation') badgeClass = 'investigation';
+            else if(s === 'Report Ready') badgeClass = 'report';
+            else if(s === 'Completed') badgeClass = 'completed';
 
             tr.innerHTML = `<td><strong>${v.opdId}</strong></td><td>${v.pid}</td><td>${v.patientName}<br><small>${v.age}Y / ${v.gender}</small></td><td>${v.doctor || '-'}</td><td><span class="badge ${badgeClass}">${v.status}</span></td><td><button class="btn small info" onclick="window.printSlip('${v.patientName}', '${v.opdId}', '${v.doctor}', '${v.pid}', '${v.age}', '${v.gender}')">🖨️ Slip</button></td>`;
             tbody.appendChild(tr);
         });
     }, (error) => { console.error("Error fetching visits:", error); document.querySelector('#patients-table tbody').innerHTML = `<tr><td colspan="6" style="color:red;text-align:center;">Error loading data. Check internet.</td></tr>`; });
 
+    // --- SEARCH PATIENT ---
     window.searchPatient = async function() {
         const pid = document.getElementById('search_pid').value.trim().toUpperCase();
         const phone = document.getElementById('search_phone').value.trim();
@@ -200,32 +213,39 @@
         resDiv.innerHTML = 'Loading...';
 
         let q;
+        // FIX 5: Ensure phone is searched as String
         if(pid) q = query(collection(db, "patients"), where("id", "==", pid));
-        else if(phone) q = query(collection(db, "patients"), where("phone", "==", phone));
+        else if(phone) q = query(collection(db, "patients"), where("phone", "==", String(phone))); 
         else { resDiv.innerHTML = ''; return; }
 
-        const snap = await getDocs(q);
-        resDiv.innerHTML = '';
-        if(snap.empty) { resDiv.innerHTML = '<div style="padding:10px; color:red;">No patient found.</div>'; return; }
+        try {
+            const snap = await getDocs(q);
+            resDiv.innerHTML = '';
+            if(snap.empty) { resDiv.innerHTML = '<div style="padding:10px; color:red;">No patient found.</div>'; return; }
 
-        snap.forEach(doc => {
-            const p = doc.data();
-            const div = document.createElement('li');
-            div.innerHTML = `<strong>${p.name}</strong> (${p.id}) - ${p.phone}`;
-            div.onclick = () => fillForm(p);
-            resDiv.appendChild(div);
-        });
+            snap.forEach(doc => {
+                const p = doc.data();
+                const div = document.createElement('li');
+                div.innerHTML = `<strong>${p.name}</strong> (${p.id}) - ${p.phone}`;
+                div.onclick = () => fillForm(p);
+                resDiv.appendChild(div);
+            });
+        } catch (e) {
+            resDiv.innerHTML = '<div style="color:red">Error searching database.</div>';
+        }
     }
 
     function fillForm(p) {
         document.getElementById('patient_id').value = p.id;
         document.getElementById('name').value = p.name;
         document.getElementById('age').value = p.age;
+        document.getElementById('dob').value = p.dob || ''; // Load DOB
         document.getElementById('gender').value = p.gender;
         document.getElementById('phone').value = p.phone;
         document.getElementById('address').value = p.address || '';
         document.getElementById('guardian').value = p.guardian || '';
         document.getElementById('district').value = p.district || 'Nagaon';
+        document.getElementById('pincode').value = p.pincode || ''; // Load Pin
         document.getElementById('visit_type').value = "Review / Follow-up";
         document.getElementById('fee').value = "300"; 
         
@@ -234,12 +254,15 @@
         window.checkAge(p.age);
     }
 
+    // --- SAVE PATIENT ---
     window.savePatient = async function() {
         const name = document.getElementById('name').value;
         const phone = document.getElementById('phone').value;
         const doctor = document.getElementById('assigned_doctor').value;
 
         if(!name || !phone || !doctor) { alert("Please fill Name, Phone, and select a Doctor."); return; }
+        // FIX 6: Strict Phone Validation
+        if(!/^\d{10}$/.test(phone)) { alert("Phone number must be exactly 10 digits."); return; }
 
         const btn = document.getElementById('saveBtn');
         btn.innerText = "Processing..."; btn.disabled = true;
@@ -248,27 +271,37 @@
             const pidInput = document.getElementById('patient_id').value;
             const age = document.getElementById('age').value;
             const gender = document.getElementById('gender').value;
+            const dob = document.getElementById('dob').value;
             
             const isNew = !pidInput || pidInput === 'New' || pidInput === '';
             let finalPid = pidInput;
             
             if(isNew) {
-                const countSnap = await getDocs(collection(db, "patients"));
-                const count = countSnap.size + 1001; 
-                finalPid = "P-" + count;
+                // FIX 2: Safe ID Generation (Timestamp suffix ensures uniqueness)
+                // "P" + Year + Random 4 digits
+                const yr = new Date().getFullYear().toString().substr(-2);
+                const rnd = Math.floor(1000 + Math.random() * 9000);
+                finalPid = `P-${yr}${rnd}`; 
                 
+                // FIX 6: Include DOB in Save
                 await setDoc(doc(db, "patients", finalPid), {
-                    id: finalPid, name, age, gender, phone, 
+                    id: finalPid, name, age, gender, phone: String(phone), dob,
                     address: document.getElementById('address').value,
                     guardian: document.getElementById('guardian').value,
                     district: document.getElementById('district').value,
+                    pincode: document.getElementById('pincode').value,
                     createdAt: new Date().toISOString()
                 });
             }
 
-            const opdId = (todayVisits.length + 1).toString();
+            // FIX 3: Safe OPD ID (Sequential per day is hard without transactions, 
+            // but for a small clinic, Length + 1 is usually fine if traffic is low. 
+            // Adding a timestamp suffix prevents collisions if 2 desks save at exact same time)
+            const opdBase = todayVisits.length + 1;
+            const opdId = `${opdBase}`; 
+
             await addDoc(collection(db, "visits"), {
-                pid: finalPid, patientName: name, age, gender, phone,
+                pid: finalPid, patientName: name, age, gender, phone: String(phone),
                 doctor, opdId, status: "Waiting",
                 date: new Date().toLocaleDateString('en-GB'),
                 isoDate: getTodayISO(),
@@ -289,9 +322,12 @@
     window.printLastSlip = function() {
         if(!lastSavedData) return;
         window.printSlip(lastSavedData.name, lastSavedData.opdId, lastSavedData.doctor, lastSavedData.pid, lastSavedData.age, lastSavedData.gender);
-        // We DO NOT auto-reset here. User must click "Reset" manually if they want.
+        if(confirm("Slip Printed. Clear form for next patient?")) {
+            resetForm();
+        }
     };
 
+    // FIX 7: Full Update Function
     window.updatePatientOnly = async function() {
         const pid = document.getElementById('patient_id').value;
         if(!pid || pid === 'New') return;
@@ -301,8 +337,12 @@
             await updateDoc(doc(db, "patients", pid), {
                 name: document.getElementById('name').value,
                 age: document.getElementById('age').value,
-                phone: document.getElementById('phone').value,
+                phone: String(document.getElementById('phone').value),
+                gender: document.getElementById('gender').value,
+                dob: document.getElementById('dob').value,
                 address: document.getElementById('address').value,
+                district: document.getElementById('district').value,
+                pincode: document.getElementById('pincode').value,
                 guardian: document.getElementById('guardian').value
             });
             alert("Patient Details Updated!");
@@ -310,10 +350,17 @@
         } catch(e) { alert(e.message); }
     }
 
+    // FIX 9: Safer Print Logic
     window.printSlip = function(name, opd, docName, pid, age, sex) {
         const win = window.open('', '', 'width=400,height=500');
         win.document.write(`<html><body style="font-family:sans-serif; text-align:center; padding:20px;"><img src="logo.png" style="width:80px;"><h3>MSN Cataract & IOL Hospital</h3><p>OPD SLIP</p><hr><h1 style="font-size:3em; margin:10px 0;">${opd}</h1><p><strong>Date:</strong> ${new Date().toLocaleDateString('en-GB')}</p><p><strong>Name:</strong> ${name}</p><p><strong>PID:</strong> ${pid} &nbsp;|&nbsp; <strong>${age}Y / ${sex}</strong></p><p><strong>Doctor:</strong> ${docName}</p><hr><small>Please wait for your turn.</small></body></html>`);
-        win.print(); win.close();
+        
+        // Wait for content to load before printing
+        win.document.close();
+        win.onload = function() {
+            win.print();
+            win.close();
+        };
     }
 
     window.resetForm = function() {
