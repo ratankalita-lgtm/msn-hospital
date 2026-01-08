@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics Dashboard - MSN Hospital</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* DASHBOARD SPECIFIC STYLES */
+        .filter-container { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .filter-row { display: flex; gap: 15px; align-items: end; flex-wrap: wrap; margin-bottom: 10px; }
+        
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 20px; }
+        .stat-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: center; border-bottom: 4px solid #ddd; transition: transform 0.2s; position: relative; }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .stat-card h3 { margin: 0; font-size: 2.2em; color: #333; min-height: 40px; }
+        .stat-card p { margin: 5px 0 0; color: #777; font-weight: bold; text-transform: uppercase; font-size: 0.85em; }
+        
+        .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .chart-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .chart-card.full-width { grid-column: span 2; }
+
+        .table-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        
+        /* UTILITIES */
+        .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200px 100%; animation: shimmer 1.5s infinite; border-radius: 4px; display: inline-block; width: 100%; height: 100%; }
+        @keyframes shimmer { 0% { background-position: -200px 0; } 100% { background-position: 200px 0; } }
+        
+        .status-badge { padding: 3px 8px; border-radius: 12px; font-size: 0.8em; font-weight: bold; color: white; }
+        .bg-green { background-color: #28a745; }
+        .bg-orange { background-color: #fd7e14; }
+        .bg-blue { background-color: #007bff; }
+        .bg-gray { background-color: #6c757d; }
+
+        .pagination { margin-top: 15px; display: flex; justify-content: space-between; align-items: center; }
+        
+        /* TOAST NOTIFICATION */
+        .notification { position: fixed; top: 20px; right: 20px; padding: 15px 20px; border-radius: 5px; color: white; z-index: 1000; animation: slideIn 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        @media (max-width: 900px) { .chart-grid { grid-template-columns: 1fr; } .chart-card.full-width { grid-column: span 1; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header class="hospital-header">
+        <img src="logo.png" alt="Logo" class="hospital-logo" onerror="this.style.display='none'">
+        <div><h2>Analytics Dashboard</h2><p class="text-muted">Real-time Insights & Reports</p></div>
+        <a href="index.html" class="btn ghost small" style="margin-left:auto; text-decoration:none;">Back to Home</a>
+    </header>
+
+    <div class="filter-container">
+        <div class="filter-row">
+            <div class="col"><label>Start Date</label><input type="date" id="date_start" onchange="debouncedLoad()"></div>
+            <div class="col"><label>End Date</label><input type="date" id="date_end" onchange="debouncedLoad()"></div>
+            <div class="col"><label>Doctor</label><select id="filter-doctor" onchange="debouncedLoad()"><option value="">All Doctors</option></select></div>
+            <div class="col"><label>Status</label><select id="filter-status" onchange="debouncedLoad()"><option value="">All Status</option><option value="Completed">Completed</option><option value="Waiting">Waiting</option><option value="With Doctor">With Doctor</option><option value="Investigation">Investigation</option><option value="Report Ready">Report Ready</option></select></div>
+        </div>
+        <div class="filter-row" style="border-top:1px solid #eee; padding-top:10px;">
+            <div class="col" style="flex-grow:1;">
+                <input type="text" id="search-input" placeholder="🔍 Search Name, PID or Phone..." onkeyup="debouncedLoad()" style="padding:10px;">
+            </div>
+            <div class="col">
+                <button class="btn ghost small" onclick="setFilter('today')">Today</button>
+                <button class="btn ghost small" onclick="setFilter('week')">This Week</button>
+                <button class="btn ghost small" onclick="setFilter('month')">This Month</button>
+            </div>
+            <div class="col"><button class="btn info" onclick="exportReport()">📥 Export CSV</button></div>
+        </div>
+    </div>
+
+    <div class="stat-grid">
+        <div class="stat-card" style="border-color: #007bff;"><h3 id="m-total"><span class="skeleton"></span></h3><p>Total Visits</p></div>
+        <div class="stat-card" style="border-color: #28a745;"><h3 id="m-revenue"><span class="skeleton"></span></h3><p>Total Revenue</p></div>
+        <div class="stat-card" style="border-color: #dc3545;"><h3 id="m-pending"><span class="skeleton"></span></h3><p>Pending / Waiting</p></div>
+        <div class="stat-card" style="border-color: #17a2b8;"><h3 id="m-avg-fee"><span class="skeleton"></span></h3><p>Avg Fee</p></div>
+        <div class="stat-card" style="border-color: #6f42c1;"><h3 id="m-avg-age"><span class="skeleton"></span></h3><p>Avg Age</p></div>
+        <div class="stat-card" style="border-color: #ffc107;"><h3 id="m-new"><span class="skeleton"></span></h3><p>New Patients</p></div>
+    </div>
+
+    <div class="chart-grid">
+        <div class="chart-card full-width">
+            <h4>Daily Patient Volume</h4>
+            <canvas id="dailyChart" style="max-height: 300px;"></canvas>
+        </div>
+        <div class="chart-card">
+            <h4>Patients per Doctor</h4>
+            <canvas id="doctorChart"></canvas>
+        </div>
+        <div class="chart-card">
+            <h4>Gender Distribution</h4>
+            <canvas id="genderChart" style="max-height: 250px;"></canvas>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <h4>Detailed Visit Log</h4>
+        <table style="width:100%; margin-top:10px;">
+            <thead><tr><th>Date</th><th>PID</th><th>Name</th><th>Doctor</th><th>Fee</th><th>Status</th></tr></thead>
+            <tbody id="report-table-body"><tr><td colspan="6" style="text-align:center; padding:20px;">Loading...</td></tr></tbody>
+        </table>
+        <div class="pagination">
+            <span id="page-info">Showing 0-0 of 0</span>
+            <div>
+                <button class="btn small ghost" onclick="changePage(-1)">Previous</button>
+                <button class="btn small ghost" onclick="changePage(1)">Next</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, query, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = { apiKey: "AIzaSyBne_-4FcG5DjtUDVwdd1K-XDsHjX0JOEo", authDomain: "msn-hospital.firebaseapp.com", projectId: "msn-hospital", storageBucket: "msn-hospital.firebasestorage.app", messagingSenderId: "525072218332", appId: "1:525072218332:web:5940ec924f59db675adc19", measurementId: "G-FXXZ7STWDJ" };
+    const app = initializeApp(firebaseConfig); const db = getFirestore(app);
+
+    let rawData = [];
+    let filteredData = [];
+    let doctorList = new Set();
+    
+    // Charts
+    let dailyChart = null, doctorChart = null, genderChart = null;
+
+    // Pagination
+    let currentPage = 1;
+    const itemsPerPage = 20;
+    let reloadTimeout = null;
+
+    window.onload = function() {
+        setFilter('month'); // Default to this month
+        setupRealtimeListener();
+    };
+
+    function setupRealtimeListener() {
+        const q = query(collection(db, "visits"));
+        onSnapshot(q, (snapshot) => {
+            rawData = snapshot.docs.map(doc => doc.data());
+            // Extract Doctors for dropdown
+            rawData.forEach(v => { if(v.doctor) doctorList.add(v.doctor); });
+            populateDoctorDropdown();
+            
+            showNotification("Dashboard Data Updated", "#28a745");
+            applyFilters(); // Apply logic on local data
+        }, (error) => {
+            console.error(error);
+            showNotification("Error connecting to database", "#dc3545");
+        });
+    }
+
+    function populateDoctorDropdown() {
+        const sel = document.getElementById('filter-doctor');
+        const current = sel.value;
+        sel.innerHTML = '<option value="">All Doctors</option>';
+        doctorList.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d; opt.innerText = d;
+            sel.appendChild(opt);
+        });
+        sel.value = current;
+    }
+
+    window.debouncedLoad = function() {
+        if(reloadTimeout) clearTimeout(reloadTimeout);
+        reloadTimeout = setTimeout(applyFilters, 300);
+    }
+
+    window.setFilter = function(range) {
+        const d = new Date();
+        const end = d.toISOString().split('T')[0];
+        let start = end;
+
+        if(range === 'week') { d.setDate(d.getDate() - 7); start = d.toISOString().split('T')[0]; }
+        else if(range === 'month') { start = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0]; }
+        
+        document.getElementById('date_start').value = start;
+        document.getElementById('date_end').value = end;
+        applyFilters();
+    }
+
+    function applyFilters() {
+        const start = document.getElementById('date_start').value;
+        const end = document.getElementById('date_end').value;
+        const docFilter = document.getElementById('filter-doctor').value;
+        const statusFilter = document.getElementById('filter-status').value;
+        const search = document.getElementById('search-input').value.toLowerCase();
+
+        filteredData = rawData.filter(v => {
+            const vDate = v.isoDate;
+            const inDate = (!start || vDate >= start) && (!end || vDate <= end);
+            const inDoc = !docFilter || v.doctor === docFilter;
+            const inStatus = !statusFilter || v.status === statusFilter;
+            
+            let inSearch = true;
+            if(search) {
+                inSearch = (v.patientName||'').toLowerCase().includes(search) || 
+                           (v.pid||'').toLowerCase().includes(search) || 
+                           (v.phone||'').includes(search);
+            }
+
+            return inDate && inDoc && inStatus && inSearch;
+        });
+
+        // Sort: Newest first
+        filteredData.sort((a,b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+        updateMetrics();
+        updateCharts();
+        currentPage = 1;
+        renderTable();
+    }
+
+    function updateMetrics() {
+        const total = filteredData.length;
+        const completed = filteredData.filter(v => v.status === 'Completed').length;
+        const pending = filteredData.filter(v => v.status === 'Waiting' || v.status === 'Investigation').length;
+        
+        let revenue = 0, ageSum = 0, feeCount = 0;
+        
+        filteredData.forEach(v => {
+            const fee = parseInt(v.fee) || 0;
+            if(v.status === 'Completed') revenue += fee; // Revenue only from completed? Or all? Usually collected at desk. Assuming all.
+            // Let's assume Fee is collected at Reception, so counts for all.
+            // revenue += fee; 
+            
+            if(v.age) ageSum += parseInt(v.age);
+        });
+
+        // REVENUE RULE: If fee collected at registration -> Count all. If only after service -> Count Completed. 
+        // Based on reception.html, fee is entered at registration. So using Total.
+        const totalRevenue = filteredData.reduce((acc, v) => acc + (parseInt(v.fee)||0), 0);
+
+        const avgFee = total > 0 ? Math.round(totalRevenue / total) : 0;
+        const avgAge = total > 0 ? Math.round(ageSum / total) : 0;
+
+        document.getElementById('m-total').innerText = total;
+        document.getElementById('m-revenue').innerText = "₹" + totalRevenue.toLocaleString();
+        document.getElementById('m-pending').innerText = pending;
+        document.getElementById('m-avg-fee').innerText = "₹" + avgFee;
+        document.getElementById('m-avg-age').innerText = avgAge + " Y";
+        
+        // New Patients approximation (simple ID check if P-YY...)
+        // Real logic needs 'createdAt' from patient DB, but this is an approximation from visits
+        const newPatients = filteredData.filter(v => v.type === 'New Case').length;
+        document.getElementById('m-new').innerText = newPatients;
+    }
+
+    function updateCharts() {
+        // 1. Doctor Data
+        const docCounts = {};
+        filteredData.forEach(v => { const d = v.doctor || "Unknown"; docCounts[d] = (docCounts[d] || 0) + 1; });
+
+        // 2. Gender Data
+        const genderCounts = { Male: 0, Female: 0, Other: 0 };
+        filteredData.forEach(v => { const g = v.gender || "Other"; if(genderCounts[g] !== undefined) genderCounts[g]++; });
+
+        // 3. Daily Trend
+        const dailyCounts = {};
+        filteredData.forEach(v => { 
+            // Normalize date 
+            const d = v.isoDate || v.date; 
+            dailyCounts[d] = (dailyCounts[d] || 0) + 1; 
+        });
+        const sortedDates = Object.keys(dailyCounts).sort();
+
+        // Render Charts
+        const commonOptions = { responsive: true, maintainAspectRatio: false };
+
+        // DOCTOR CHART
+        const ctxDoc = document.getElementById('doctorChart').getContext('2d');
+        if(doctorChart) doctorChart.destroy();
+        doctorChart = new Chart(ctxDoc, {
+            type: 'bar',
+            data: { labels: Object.keys(docCounts), datasets: [{ label: 'Patients', data: Object.values(docCounts), backgroundColor: '#007bff' }] },
+            options: { ...commonOptions, indexAxis: 'y' }
+        });
+
+        // GENDER CHART
+        const ctxGen = document.getElementById('genderChart').getContext('2d');
+        if(genderChart) genderChart.destroy();
+        genderChart = new Chart(ctxGen, {
+            type: 'doughnut',
+            data: { labels: Object.keys(genderCounts), datasets: [{ data: Object.values(genderCounts), backgroundColor: ['#36a2eb', '#ff6384', '#ffcd56'] }] },
+            options: commonOptions
+        });
+
+        // DAILY CHART
+        const ctxDaily = document.getElementById('dailyChart').getContext('2d');
+        if(dailyChart) dailyChart.destroy();
+        dailyChart = new Chart(ctxDaily, {
+            type: 'line',
+            data: { 
+                labels: sortedDates, 
+                datasets: [{ 
+                    label: 'Visits', 
+                    data: sortedDates.map(d => dailyCounts[d]), 
+                    borderColor: '#28a745', 
+                    backgroundColor: 'rgba(40, 167, 69, 0.1)', 
+                    fill: true,
+                    tension: 0.3
+                }] 
+            },
+            options: commonOptions
+        });
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('report-table-body');
+        tbody.innerHTML = '';
+        
+        if(filteredData.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px;">No records found.</td></tr>';
+            document.getElementById('page-info').innerText = '0-0 of 0';
+            return;
+        }
+
+        const start = (currentPage - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        const pageItems = filteredData.slice(start, end);
+
+        pageItems.forEach(v => {
+            let badgeClass = 'bg-gray';
+            if(v.status === 'Completed') badgeClass = 'bg-green';
+            else if(v.status === 'Waiting') badgeClass = 'bg-orange';
+            else if(v.status === 'With Doctor') badgeClass = 'bg-blue';
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${v.date || v.isoDate}</td>
+                <td>${v.pid}</td>
+                <td>${v.patientName}</td>
+                <td>${v.doctor}</td>
+                <td>₹${v.fee}</td>
+                <td><span class="status-badge ${badgeClass}">${v.status}</span></td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById('page-info').innerText = `Showing ${start + 1}-${Math.min(end, filteredData.length)} of ${filteredData.length}`;
+    }
+
+    window.changePage = function(dir) {
+        const maxPage = Math.ceil(filteredData.length / itemsPerPage);
+        if(currentPage + dir > 0 && currentPage + dir <= maxPage) {
+            currentPage += dir;
+            renderTable();
+        }
+    }
+
+    window.exportReport = function() {
+        if(filteredData.length === 0) { showNotification("No data to export", "#dc3545"); return; }
+        
+        let csv = "Date,PID,Name,Age,Gender,Phone,Doctor,Fee,Status,Diagnosis\n";
+        filteredData.forEach(v => {
+            const diag = v.doctorData ? v.doctorData.diagnosis : "";
+            const clean = (text) => `"${(text || "").toString().replace(/"/g, '""')}"`;
+            csv += `${v.isoDate},${clean(v.pid)},${clean(v.patientName)},${v.age},${v.gender},${clean(v.phone)},${clean(v.doctor)},${v.fee},${v.status},${clean(diag)}\n`;
+        });
+
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Report_${document.getElementById('date_start').value}_to_${document.getElementById('date_end').value}.csv`;
+        a.click();
+    }
+
+    function showNotification(msg, color) {
+        const notif = document.createElement('div');
+        notif.className = 'notification';
+        notif.style.backgroundColor = color;
+        notif.innerText = msg;
+        document.body.appendChild(notif);
+        setTimeout(() => notif.remove(), 3000);
+    }
+</script>
+
+</body>
+</html>

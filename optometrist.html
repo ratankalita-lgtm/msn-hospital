@@ -8,15 +8,10 @@
     <style>
         .hidden { display: none; }
         .small-input { width: 100%; text-align: center; padding: 5px; border: 1px solid #ccc; border-radius: 4px; }
-        
-        /* --- NEW: Clinical Color Coding --- */
         .od-input { border: 1px solid #ff9999; background-color: #fff5f5; color: #d60000; }
         .od-input:focus { outline: 2px solid #ffcccc; }
-        
         .os-input { border: 1px solid #99ccff; background-color: #f0f8ff; color: #004085; }
         .os-input:focus { outline: 2px solid #cce5ff; }
-        /* ---------------------------------- */
-
         .opto-grid { display: grid; grid-template-columns: 150px 1fr 1fr; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
         .opto-grid.header { font-weight: bold; background-color: #f8f9fa; border-bottom: 2px solid #dee2e6; padding: 10px 5px; }
         .opto-grid.pgp { grid-template-columns: 100px 1fr 1fr 1fr 1fr; }
@@ -25,6 +20,13 @@
         .status-investigation { color: #fff; background-color: #fd7e14; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; font-weight:bold; }
         .added-item { display: inline-block; background: #e9ecef; padding: 4px 8px; margin: 4px 4px 4px 0; border-radius: 15px; font-size: 0.9em; border: 1px solid #ced4da; }
         .remove-x { color: red; margin-left: 6px; cursor: pointer; font-weight: bold; }
+        
+        /* VALIDATION STYLES */
+        .invalid-input { border-color: #dc3545 !important; background-color: #fff8f8 !important; }
+        .warning-text { color: #856404; font-size: 0.8em; margin-top: 2px; }
+        .va-chart-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; margin-top: 10px; }
+        .va-item { background: #e9ecef; padding: 4px; text-align: center; border-radius: 4px; cursor: pointer; font-size: 0.85em; }
+        .va-item:hover { background: #007bff; color: white; }
     </style>
 </head>
 <body>
@@ -47,6 +49,23 @@
         <div style="background:#e3f2fd; padding:15px; margin-bottom:20px; border-radius:6px; border-left: 5px solid #007bff; display:flex; justify-content:space-between; align-items:center;">
             <div><h3 id="p-header" style="margin:0; color:#007bff">Patient Name</h3><p id="p-details" style="margin:5px 0 0 0; color:#555;">PID: - </p></div>
             <button class="btn ghost small" onclick="closeWorkup()">Back to Queue</button>
+        </div>
+
+        <div class="card" style="background:#f8f9fa; margin-bottom:20px; padding:15px;">
+            <h4 style="margin-top:0;">🧮 Clinical Helper</h4>
+            <div style="display:flex; gap:20px; align-items:center;">
+                <div>
+                    <label>Age-Based Add:</label>
+                    <button class="btn small" onclick="calcAdd()">Calculate for Age</button>
+                    <span id="calc-result" style="font-weight:bold; margin-left:10px; color:#28a745;"></span>
+                </div>
+                <div style="border-left:1px solid #ccc; padding-left:20px;">
+                    <label>Spherical Equiv:</label>
+                    <input id="se-sph" placeholder="Sph" style="width:50px;"> <input id="se-cyl" placeholder="Cyl" style="width:50px;">
+                    <button class="btn small info" onclick="calcSE()">Calc</button>
+                    <span id="se-result" style="font-weight:bold; margin-left:10px;"></span>
+                </div>
+            </div>
         </div>
 
         <div id="investigation-panel" class="hidden" style="border: 2px solid #fd7e14; padding: 15px; border-radius: 6px; margin-bottom: 20px; background: #fff5eb;">
@@ -86,30 +105,39 @@
 
             <fieldset><legend>Visual Acuity</legend>
                 <div class="opto-grid header"><div>Test</div><div>Right Eye (OD)</div><div>Left Eye (OS)</div></div>
-                <div class="opto-grid"><div>Distance (Unaided)</div><input id="va_od_dist" class="small-input od-input"><input id="va_os_dist" class="small-input os-input"></div>
+                <div class="opto-grid"><div>Distance (Unaided)</div><input id="va_od_dist" class="small-input od-input" placeholder="6/.."><input id="va_os_dist" class="small-input os-input" placeholder="6/.."></div>
                 <div class="opto-grid"><div>With Rx</div><input id="va_od_rx" class="small-input od-input"><input id="va_os_rx" class="small-input os-input"></div>
                 <div class="opto-grid"><div>Pinhole</div><input id="va_od_ph" class="small-input od-input"><input id="va_os_ph" class="small-input os-input"></div>
                 <div class="opto-grid"><div>Near</div><input id="va_od_near" class="small-input od-input" value="N6"><input id="va_os_near" class="small-input os-input" value="N6"></div>
+                
+                <div class="va-chart-grid">
+                    <div class="va-item" onclick="fillActiveVA('6/6')">6/6</div><div class="va-item" onclick="fillActiveVA('6/9')">6/9</div>
+                    <div class="va-item" onclick="fillActiveVA('6/12')">6/12</div><div class="va-item" onclick="fillActiveVA('6/18')">6/18</div>
+                    <div class="va-item" onclick="fillActiveVA('6/24')">6/24</div><div class="va-item" onclick="fillActiveVA('6/36')">6/36</div>
+                    <div class="va-item" onclick="fillActiveVA('6/60')">6/60</div><div class="va-item" onclick="fillActiveVA('CF')">CF</div>
+                    <div class="va-item" onclick="fillActiveVA('HM')">HM</div><div class="va-item" onclick="fillActiveVA('PL')">PL</div>
+                </div>
             </fieldset>
 
             <fieldset><legend>Refraction</legend>
                 <div class="opto-grid refraction header"><div>Eye</div><div>Sph</div><div>Cyl</div><div>Axis</div><div>Add</div><div>Final VA</div></div>
                 <div class="opto-grid refraction">
                     <div><strong style="color:#d60000">OD</strong></div>
-                    <input id="rx_sph_od" class="small-input od-input">
-                    <input id="rx_cyl_od" class="small-input od-input">
-                    <input id="rx_ax_od" type="number" min="0" max="180" class="small-input od-input">
+                    <input id="rx_sph_od" class="small-input od-input" onblur="validateRx(this, 'sph')">
+                    <input id="rx_cyl_od" class="small-input od-input" onblur="validateRx(this, 'cyl')">
+                    <input id="rx_ax_od" type="number" min="0" max="180" class="small-input od-input" onblur="validateRx(this, 'ax')">
                     <input id="rx_add_od" class="small-input od-input">
                     <input id="rx_va_od" class="small-input od-input">
                 </div>
                 <div class="opto-grid refraction">
                     <div><strong style="color:#004085">OS</strong></div>
-                    <input id="rx_sph_os" class="small-input os-input">
-                    <input id="rx_cyl_os" class="small-input os-input">
-                    <input id="rx_ax_os" type="number" min="0" max="180" class="small-input os-input">
+                    <input id="rx_sph_os" class="small-input os-input" onblur="validateRx(this, 'sph')">
+                    <input id="rx_cyl_os" class="small-input os-input" onblur="validateRx(this, 'cyl')">
+                    <input id="rx_ax_os" type="number" min="0" max="180" class="small-input os-input" onblur="validateRx(this, 'ax')">
                     <input id="rx_add_os" class="small-input os-input">
                     <input id="rx_va_os" class="small-input os-input">
                 </div>
+                <div id="rx-warning" class="warning-text"></div>
             </fieldset>
 
             <fieldset><legend>Examination</legend>
@@ -126,18 +154,20 @@
                 <div class="opto-grid"><div>AC</div><input id="sl_ac_od" value="Normal"><input id="sl_ac_os" value="Normal"></div>
                 <div class="opto-grid"><div>Pupil</div><input id="sl_pupil_od" value="R R R"><input id="sl_pupil_os" value="R R R"></div>
                 <div class="opto-grid"><div>Lens</div><input id="sl_lens_od" class="small-input"><input id="sl_lens_os" class="small-input"></div>
-                <div class="opto-grid"><div><strong>IOP (mmHg)</strong></div><input id="sl_iop_od" type="number" class="small-input"><input id="sl_iop_os" type="number" class="small-input"></div>
+                <div class="opto-grid"><div><strong>IOP (mmHg)</strong></div><input id="sl_iop_od" type="number" class="small-input" onblur="checkIOP()"><input id="sl_iop_os" type="number" class="small-input" onblur="checkIOP()"></div>
+                <div id="iop-warning" class="warning-text"></div>
                 <div class="row" style="margin-top:10px;"><div class="col wide"><label>Remarks</label><input id="sl_remarks" type="text"></div></div>
             </fieldset>
             
             <div class="row" style="background:#fff3cd; padding:10px; margin-top:15px;">
                 <div class="col wide"><label style="font-weight:bold;">Dilation</label>
-                    <select id="dilation_instruct"><option value="None">-- Select --</option><option value="Dilate">Dilate</option><option value="Dilate after consultation">Dilate after consultation</option><option value="Do not dilate">Do not dilate</option></select>
+                    <select id="dilation_instruct" onchange="checkDilationSafety(this.value)"><option value="None">-- Select --</option><option value="Dilate">Dilate</option><option value="Dilate after consultation">Dilate after consultation</option><option value="Do not dilate">Do not dilate</option></select>
+                    <div id="dilation-warning" class="hidden" style="color:#d9534f; font-weight:bold; margin-top:5px;">⚠️ CHECK ANGLES & IOP BEFORE DILATION</div>
                 </div>
             </div>
 
             <div class="actions" style="margin-top: 20px;">
-                <button type="button" class="btn" onclick="saveWorkup()">Save & Send to Doctor</button>
+                <button type="button" class="btn" id="saveBtn" onclick="saveWorkup()">Save & Send to Doctor</button>
                 <button type="button" class="btn info" onclick="printRx()">Print Spectacle Rx</button>
                 <button type="button" class="btn ghost" onclick="closeWorkup()">Cancel</button>
             </div>
@@ -166,6 +196,7 @@
     let allVisits = [];
     let allPatients = []; 
     let systemicDiseasesList = [];
+    let autoSaveTimer = null;
 
     onSnapshot(collection(db, "patients"), (snapshot) => {
         allPatients = snapshot.docs.map(doc => doc.data());
@@ -178,6 +209,23 @@
         renderQueue();
     });
 
+    // --- AUTO SAVE LOGIC ---
+    function setupAutoSave() {
+        document.getElementById('optoForm').addEventListener('input', () => {
+            if(autoSaveTimer) clearTimeout(autoSaveTimer);
+            autoSaveTimer = setTimeout(() => {
+                if(currentVisit) localStorage.setItem('draft_' + currentVisit.pid, JSON.stringify(gatherData()));
+            }, 30000); // 30 sec debounce
+        });
+    }
+
+    function checkDraft(pid) {
+        const draft = localStorage.getItem('draft_' + pid);
+        if(draft && confirm("Found unsaved draft. Load it?")) {
+            populateForm(JSON.parse(draft));
+        }
+    }
+
     function renderQueue() {
         const tbody = document.querySelector('#opto-queue-table tbody');
         if (!tbody) return;
@@ -188,20 +236,15 @@
         });
         if (queue.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px;">No patients waiting.</td></tr>'; return; }
         
-        // SORT BY TIME
         queue.sort((a,b) => (a.timestamp || 0) - (b.timestamp || 0));
 
         queue.forEach(v => {
             const patientData = allPatients.find(p => p.id === v.pid);
             const address = patientData ? patientData.address : '-';
             const tr = document.createElement('tr');
-            
             let statusBadge = `<span class="status-waiting">${v.status}</span>`;
             if(v.status === 'Investigation') statusBadge = `<span class="status-investigation">Investigation</span>`;
-
-            // Using v.address from updated reception.html if available, fallback to lookup
             const displayAddr = v.address || address;
-
             tr.innerHTML = `<td><strong>${v.opdId}</strong></td><td>${v.pid}</td><td>${v.patientName}</td><td>${displayAddr}</td><td>${v.age}Y/${v.gender}</td><td>${statusBadge}</td><td><button class="btn small" onclick="window.loadPatient('${v.firebaseId}')">Workup</button></td>`;
             tbody.appendChild(tr);
         });
@@ -217,33 +260,11 @@
         document.getElementById('optoForm').reset();
         systemicDiseasesList = [];
         
-        const d = currentVisit.optoData;
-        if(d) {
-            const setVal = (id, val) => { if(document.getElementById(id)) document.getElementById(id).value = val || ''; }
-            
-            setVal('chief_complaint', d.history?.complaint);
-            setVal('ocular_history', d.history?.ocular_hx);
-            setVal('allergies', d.history?.allergies);
-            
-            setVal('pgp_sph_od', d.pgp?.od?.sph); setVal('pgp_cyl_od', d.pgp?.od?.cyl); setVal('pgp_ax_od', d.pgp?.od?.ax); setVal('pgp_add_od', d.pgp?.od?.add);
-            setVal('pgp_sph_os', d.pgp?.os?.sph); setVal('pgp_cyl_os', d.pgp?.os?.cyl); setVal('pgp_ax_os', d.pgp?.os?.ax); setVal('pgp_add_os', d.pgp?.os?.add);
-
-            setVal('va_od_dist', d.va?.od?.dist); setVal('va_od_rx', d.va?.od?.rx); setVal('va_od_ph', d.va?.od?.ph); setVal('va_od_near', d.va?.od?.near);
-            setVal('va_os_dist', d.va?.os?.dist); setVal('va_os_rx', d.va?.os?.rx); setVal('va_os_ph', d.va?.os?.ph); setVal('va_os_near', d.va?.os?.near);
-
-            setVal('rx_sph_od', d.refraction?.od?.sph); setVal('rx_cyl_od', d.refraction?.od?.cyl); setVal('rx_ax_od', d.refraction?.od?.ax); setVal('rx_add_od', d.refraction?.od?.add); setVal('rx_va_od', d.refraction?.od?.va);
-            setVal('rx_sph_os', d.refraction?.os?.sph); setVal('rx_cyl_os', d.refraction?.os?.cyl); setVal('rx_ax_os', d.refraction?.os?.ax); setVal('rx_add_os', d.refraction?.os?.add); setVal('rx_va_os', d.refraction?.os?.va);
-
-            setVal('ext_od', d.external?.od?.ext); setVal('eom_od', d.external?.od?.eom); setVal('ct_dist_od', d.external?.od?.ct_dist); setVal('ct_near_od', d.external?.od?.ct_near);
-            setVal('ext_os', d.external?.os?.ext); setVal('eom_os', d.external?.os?.eom); setVal('ct_dist_os', d.external?.os?.ct_dist); setVal('ct_near_os', d.external?.os?.ct_near);
-
-            setVal('sl_lids_od', d.slitlamp?.od?.lids); setVal('sl_conj_od', d.slitlamp?.od?.conj); setVal('sl_corn_od', d.slitlamp?.od?.corn); setVal('sl_ac_od', d.slitlamp?.od?.ac); setVal('sl_pupil_od', d.slitlamp?.od?.pupil);
-            setVal('sl_lids_os', d.slitlamp?.os?.lids); setVal('sl_conj_os', d.slitlamp?.os?.conj); setVal('sl_corn_os', d.slitlamp?.os?.corn); setVal('sl_ac_os', d.slitlamp?.os?.ac); setVal('sl_pupil_os', d.slitlamp?.os?.pupil);
-            setVal('sl_lens_od', d.slitlamp?.lens_od); setVal('sl_lens_os', d.slitlamp?.lens_os);
-            setVal('sl_iop_od', d.slitlamp?.iop_od); setVal('sl_iop_os', d.slitlamp?.iop_os);
-            setVal('sl_remarks', d.slitlamp?.remarks);
-            setVal('dilation_instruct', d.plan?.dilation);
-        }
+        if(currentVisit.optoData) populateForm(currentVisit.optoData);
+        
+        // Check for local draft
+        checkDraft(currentVisit.pid);
+        setupAutoSave();
 
         const panel = document.getElementById('investigation-panel');
         if(currentVisit.status === 'Investigation') {
@@ -253,10 +274,89 @@
         } else {
             panel.classList.add('hidden');
         }
-
         renderSysList();
     };
 
+    function populateForm(d) {
+        const setVal = (id, val) => { if(document.getElementById(id)) document.getElementById(id).value = val || ''; }
+        setVal('chief_complaint', d.history?.complaint); setVal('ocular_history', d.history?.ocular_hx); setVal('allergies', d.history?.allergies);
+        setVal('pgp_sph_od', d.pgp?.od?.sph); setVal('pgp_cyl_od', d.pgp?.od?.cyl); setVal('pgp_ax_od', d.pgp?.od?.ax); setVal('pgp_add_od', d.pgp?.od?.add);
+        setVal('pgp_sph_os', d.pgp?.os?.sph); setVal('pgp_cyl_os', d.pgp?.os?.cyl); setVal('pgp_ax_os', d.pgp?.os?.ax); setVal('pgp_add_os', d.pgp?.os?.add);
+        setVal('va_od_dist', d.va?.od?.dist); setVal('va_od_rx', d.va?.od?.rx); setVal('va_od_ph', d.va?.od?.ph); setVal('va_od_near', d.va?.od?.near);
+        setVal('va_os_dist', d.va?.os?.dist); setVal('va_os_rx', d.va?.os?.rx); setVal('va_os_ph', d.va?.os?.ph); setVal('va_os_near', d.va?.os?.near);
+        setVal('rx_sph_od', d.refraction?.od?.sph); setVal('rx_cyl_od', d.refraction?.od?.cyl); setVal('rx_ax_od', d.refraction?.od?.ax); setVal('rx_add_od', d.refraction?.od?.add); setVal('rx_va_od', d.refraction?.od?.va);
+        setVal('rx_sph_os', d.refraction?.os?.sph); setVal('rx_cyl_os', d.refraction?.os?.cyl); setVal('rx_ax_os', d.refraction?.os?.ax); setVal('rx_add_os', d.refraction?.os?.add); setVal('rx_va_os', d.refraction?.os?.va);
+        setVal('ext_od', d.external?.od?.ext); setVal('eom_od', d.external?.od?.eom); setVal('ct_dist_od', d.external?.od?.ct_dist); setVal('ct_near_od', d.external?.od?.ct_near);
+        setVal('ext_os', d.external?.os?.ext); setVal('eom_os', d.external?.os?.eom); setVal('ct_dist_os', d.external?.os?.ct_dist); setVal('ct_near_os', d.external?.os?.ct_near);
+        setVal('sl_lids_od', d.slitlamp?.od?.lids); setVal('sl_conj_od', d.slitlamp?.od?.conj); setVal('sl_corn_od', d.slitlamp?.od?.corn); setVal('sl_ac_od', d.slitlamp?.od?.ac); setVal('sl_pupil_od', d.slitlamp?.od?.pupil);
+        setVal('sl_lids_os', d.slitlamp?.os?.lids); setVal('sl_conj_os', d.slitlamp?.os?.conj); setVal('sl_corn_os', d.slitlamp?.os?.corn); setVal('sl_ac_os', d.slitlamp?.os?.ac); setVal('sl_pupil_os', d.slitlamp?.os?.pupil);
+        setVal('sl_lens_od', d.slitlamp?.lens_od); setVal('sl_lens_os', d.slitlamp?.lens_os);
+        setVal('sl_iop_od', d.slitlamp?.iop_od); setVal('sl_iop_os', d.slitlamp?.iop_os);
+        setVal('sl_remarks', d.slitlamp?.remarks); setVal('dilation_instruct', d.plan?.dilation);
+        window.checkDilationSafety(d.plan?.dilation || "");
+    }
+
+    function gatherData() {
+        return {
+            history: { complaint: v('chief_complaint'), ocular_hx: v('ocular_history'), systemic: systemicDiseasesList.map(x => x.name).join(', '), allergies: v('allergies') },
+            pgp: { od: { sph: v('pgp_sph_od'), cyl: v('pgp_cyl_od'), ax: v('pgp_ax_od'), add: v('pgp_add_od') }, os: { sph: v('pgp_sph_os'), cyl: v('pgp_cyl_os'), ax: v('pgp_ax_os'), add: v('pgp_add_os') } },
+            va: { od: { dist: v('va_od_dist'), rx: v('va_od_rx'), ph: v('va_od_ph'), near: v('va_od_near') }, os: { dist: v('va_os_dist'), rx: v('va_os_rx'), ph: v('va_os_ph'), near: v('va_os_near') } },
+            external: { od: { ext: v('ext_od'), eom: v('eom_od'), ct_dist: v('ct_dist_od'), ct_near: v('ct_near_od') }, os: { ext: v('ext_os'), eom: v('eom_os'), ct_dist: v('ct_dist_os'), ct_near: v('ct_near_os') } },
+            refraction: { od: { sph: v('rx_sph_od'), cyl: v('rx_cyl_od'), ax: v('rx_ax_od'), add: v('rx_add_od'), va: v('rx_va_od') }, os: { sph: v('rx_sph_os'), cyl: v('rx_cyl_os'), ax: v('rx_ax_os'), add: v('rx_add_os'), va: v('rx_va_os') } },
+            slitlamp: { iop_od: v('sl_iop_od'), iop_os: v('sl_iop_os'), lens_od: v('sl_lens_od'), lens_os: v('sl_lens_os'), remarks: v('sl_remarks'), od: { lids: v('sl_lids_od'), conj: v('sl_conj_od'), corn: v('sl_corn_od'), ac: v('sl_ac_od'), pupil: v('sl_pupil_od') }, os: { lids: v('sl_lids_os'), conj: v('sl_conj_os'), corn: v('sl_corn_os'), ac: v('sl_ac_os'), pupil: v('sl_pupil_os') } },
+            plan: { dilation: v('dilation_instruct') }
+        };
+    }
+
+    // --- CLINICAL TOOLS ---
+    window.checkDilationSafety = function(val) { 
+        const warn = document.getElementById('dilation-warning'); 
+        if (val.includes("Dilate")) warn.classList.remove('hidden'); else warn.classList.add('hidden'); 
+    }
+
+    window.validateRx = function(el, type) {
+        const val = parseFloat(el.value);
+        if(isNaN(val)) return;
+        let warning = "";
+        if(type === 'ax' && (val < 0 || val > 180)) warning = "Axis must be 0-180";
+        if(type === 'sph' && Math.abs(val) > 25) warning = "High Sphere! Verify.";
+        
+        document.getElementById('rx-warning').innerText = warning;
+        if(warning) el.classList.add('invalid-input'); else el.classList.remove('invalid-input');
+    }
+
+    window.checkIOP = function() {
+        const od = parseInt(v('sl_iop_od')); const os = parseInt(v('sl_iop_os'));
+        let msg = "";
+        if((od && od > 21) || (os && os > 21)) msg += "⚠️ High IOP (>21). ";
+        if(od && os && Math.abs(od-os) > 4) msg += "⚠️ Asymmetry > 4mmHg.";
+        document.getElementById('iop-warning').innerText = msg;
+    }
+
+    window.calcAdd = function() {
+        if(!currentVisit) return;
+        const age = parseInt(currentVisit.age);
+        let add = "+0.00";
+        if(age >= 40) add = "+1.00";
+        if(age >= 45) add = "+1.50";
+        if(age >= 50) add = "+2.00";
+        if(age >= 60) add = "+2.50";
+        document.getElementById('calc-result').innerText = `Suggested Add: ${add}`;
+    }
+
+    window.calcSE = function() {
+        const sph = parseFloat(document.getElementById('se-sph').value)||0;
+        const cyl = parseFloat(document.getElementById('se-cyl').value)||0;
+        document.getElementById('se-result').innerText = "SE: " + (sph + cyl/2).toFixed(2) + " D";
+    }
+
+    window.fillActiveVA = function(val) {
+        if(document.activeElement && document.activeElement.id.includes('va_')) {
+            document.activeElement.value = val;
+        }
+    }
+
+    // --- MAIN FUNCTIONS ---
     window.closeWorkup = function() {
         document.getElementById('workup-view').classList.add('hidden');
         document.getElementById('queue-view').classList.remove('hidden');
@@ -283,44 +383,11 @@
     window.saveWorkup = async function() {
         if(!currentVisit) return;
         
-        if(currentVisit.status === 'Investigation' && !confirm("This patient is marked for Investigation. Do you want to save Standard Workup data instead?")) return;
+        // Safety Check for High Myopia / Glaucoma
+        const sph = parseFloat(v('rx_sph_od'));
+        if(sph < -6 && !confirm("⚠️ High Myopia detected (-6D). Did you check retina?")) return;
 
-        let systemicString = systemicDiseasesList.map(x => `${x.name} (${x.dur})`).join(', ');
-
-        const optoData = {
-            history: {
-                complaint: v('chief_complaint'),
-                ocular_hx: v('ocular_history'),
-                systemic: systemicString || "None",
-                allergies: v('allergies')
-            },
-            pgp: {
-                od: { sph: v('pgp_sph_od'), cyl: v('pgp_cyl_od'), ax: v('pgp_ax_od'), add: v('pgp_add_od') },
-                os: { sph: v('pgp_sph_os'), cyl: v('pgp_cyl_os'), ax: v('pgp_ax_os'), add: v('pgp_add_os') }
-            },
-            va: {
-                od: { dist: v('va_od_dist'), rx: v('va_od_rx'), ph: v('va_od_ph'), near: v('va_od_near') },
-                os: { dist: v('va_os_dist'), rx: v('va_os_rx'), ph: v('va_os_ph'), near: v('va_os_near') }
-            },
-            external: {
-                od: { ext: v('ext_od'), eom: v('eom_od'), ct_dist: v('ct_dist_od'), ct_near: v('ct_near_od') },
-                os: { ext: v('ext_os'), eom: v('eom_os'), ct_dist: v('ct_dist_os'), ct_near: v('ct_near_os') }
-            },
-            refraction: {
-                od: { sph: v('rx_sph_od'), cyl: v('rx_cyl_od'), ax: v('rx_ax_od'), add: v('rx_add_od'), va: v('rx_va_od') },
-                os: { sph: v('rx_sph_os'), cyl: v('rx_cyl_os'), ax: v('rx_ax_os'), add: v('rx_add_os'), va: v('rx_va_os') }
-            },
-            slitlamp: {
-                iop_od: v('sl_iop_od'), iop_os: v('sl_iop_os'), 
-                lens_od: v('sl_lens_od'), lens_os: v('sl_lens_os'),
-                remarks: v('sl_remarks'),
-                od: { lids: v('sl_lids_od'), conj: v('sl_conj_od'), corn: v('sl_corn_od'), ac: v('sl_ac_od'), pupil: v('sl_pupil_od') },
-                os: { lids: v('sl_lids_os'), conj: v('sl_conj_os'), corn: v('sl_corn_os'), ac: v('sl_ac_os'), pupil: v('sl_pupil_os') }
-            },
-            plan: {
-                dilation: v('dilation_instruct')
-            }
-        };
+        const optoData = gatherData();
 
         try {
             const btn = document.querySelector('.btn'); btn.innerText = "Saving...";
@@ -328,6 +395,7 @@
                 optoData: optoData,
                 status: "With Doctor"
             });
+            localStorage.removeItem('draft_' + currentVisit.pid); // Clear draft
             alert("Success! Sent to Doctor.");
             closeWorkup();
         } catch(e) {
@@ -351,93 +419,26 @@
         } catch(e) { alert(e.message); }
     };
 
-    // --- IMPROVED PRINT FUNCTION (Bilingual + Assamese) ---
     window.printRx = function() {
         if(!currentVisit) return;
         const n = currentVisit.patientName;
-        // Use DD/MM/YYYY format for India
         const d = new Date().toLocaleDateString('en-GB'); 
-
         const win = window.open('', '', 'width=800,height=600');
         
         const content = `
-        <html>
-        <head>
-            <title>Print Rx</title>
-            <style>
-                body { font-family: sans-serif; padding: 20px; }
-                .watermark { position: fixed; top: 30%; left: 15%; font-size: 80px; color: rgba(0,0,0,0.05); transform: rotate(-45deg); z-index: -1; }
-                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                th, td { border: 1px solid #000; padding: 12px; text-align: center; }
-                .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
-            </style>
-        </head>
-        <body>
-            <div class="watermark">OPD COPY</div>
-            
-            <div class="header">
-                <h2>MSN Cataract & IOL Hospital</h2>
-                <p>Tilak Deka Road, Nagaon, Assam | Phone: 8486887503</p>
-                <h3>চশমাৰ প্ৰেছক্ৰিপশ্যন / Spectacle Prescription</h3>
+        <html><head><title>Glasses Rx</title><base href="${window.location.href}"><style>body{font-family:sans-serif;padding:30px;} table{width:100%;border-collapse:collapse;margin-top:20px;} th, td{border:1px solid #000;padding:12px;text-align:center;}</style></head><body onload="setTimeout(function(){window.print();window.close()}, 800)">
+            <div style="text-align:center;border-bottom:3px solid #004085;padding-bottom:10px;margin-bottom:20px;">
+                <img src="logo.png" style="width:100px;">
+                <h2 style="color:#004085;margin:0;">MSN Cataract and IOL Hospital</h2>
+                <p>Tilak Deka Road, Nagaon | Phone: 8486887503</p>
             </div>
-
-            <p>
-                <b>Name / নাম:</b> ${n} <span style="float:right"><b>Date / তাৰিখ:</b> ${d}</span><br>
-                <b>Age/Sex / বয়স-লিংগ:</b> ${currentVisit.age}Y / ${currentVisit.gender}<br>
-                <b>ID:</b> ${currentVisit.opdId}
-            </p>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th>Eye<br>চকু</th>
-                        <th>Sph<br>গোলক</th>
-                        <th>Cyl<br>চুঙা</th>
-                        <th>Axis<br>অক্ষ</th>
-                        <th>Add<br>ওচৰৰ পাৱাৰ</th>
-                        <th>VA<br>দৃষ্টিশক্তি</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><b>Right (OD)</b></td>
-                        <td>${v('rx_sph_od')}</td>
-                        <td>${v('rx_cyl_od')}</td>
-                        <td>${v('rx_ax_od')}</td>
-                        <td>${v('rx_add_od')}</td>
-                        <td>${v('rx_va_od')}</td>
-                    </tr>
-                    <tr>
-                        <td><b>Left (OS)</b></td>
-                        <td>${v('rx_sph_os')}</td>
-                        <td>${v('rx_cyl_os')}</td>
-                        <td>${v('rx_ax_os')}</td>
-                        <td>${v('rx_add_os')}</td>
-                        <td>${v('rx_va_os')}</td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <div style="margin-top: 60px; display: flex; justify-content: space-between;">
-                <div>
-                    ____________________<br>
-                    <b>Optometrist Signature</b>
-                </div>
-                <div>
-                     ____________________<br>
-                    <b>Doctor Signature</b>
-                </div>
-            </div>
-
-            <script>
-                // Print automatically when loaded
-                window.onload = function() { window.print(); window.close(); }
-            <\/script>
-        </body>
-        </html>`;
+            <h3 style="text-align:center;text-decoration:underline;">Spectacle Prescription</h3>
+            <p><strong>Name:</strong> ${n} &nbsp;&nbsp; <strong>Date:</strong> ${d} &nbsp;&nbsp; <strong>Age:</strong> ${currentVisit.age}Y</p>
+            <table><thead><tr><th>Eye</th><th>Sph</th><th>Cyl</th><th>Axis</th><th>Add</th><th>VA</th></tr></thead><tbody><tr><td>OD</td><td>${v('rx_sph_od')}</td><td>${v('rx_cyl_od')}</td><td>${v('rx_ax_od')}</td><td>${v('rx_add_od')}</td><td>${v('rx_va_od')}</td></tr><tr><td>OS</td><td>${v('rx_sph_os')}</td><td>${v('rx_cyl_os')}</td><td>${v('rx_ax_os')}</td><td>${v('rx_add_os')}</td><td>${v('rx_va_os')}</td></tr></tbody></table>
+            <br><br><div style="text-align:right;"><strong>${loggedInDoctor || 'Optometrist'}</strong><br>Signature</div>
+        </body></html>`;
         
-        win.document.write(content);
-        win.document.close();
+        win.document.write(content); win.document.close();
     };
 </script>
 

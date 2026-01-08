@@ -6,19 +6,41 @@
     <title>Reception - MSN Hospital</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        #search-result li { cursor: pointer; transition: background 0.2s; padding: 10px; border-bottom: 1px solid #eee; }
-        #search-result li:hover { background-color: #e3f2fd; }
-        .search-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end; }
-        .loading { color: #007bff; font-weight: bold; text-align: center; padding: 10px; }
-        .hidden { display: none !important; }
+        /* --- SEARCH RESULTS --- */
+        #search-result li { 
+            cursor: pointer; transition: all 0.2s; padding: 12px; border-bottom: 1px solid #eee; 
+            border-left: 4px solid transparent; list-style: none; display: flex; justify-content: space-between; align-items: center;
+        }
+        #search-result li:hover { background-color: #f8f9fa; border-left-color: #ccc; }
+        #search-result li.selected { background-color: #e3f2fd; border-left-color: #007bff; }
+        
+        /* --- STATS CARDS --- */
+        .stats-breakdown { display: flex; gap: 10px; margin-top: 10px; }
+        .mini-stat { flex: 1; background: #fff; padding: 8px; border-radius: 6px; text-align: center; border: 1px solid #eee; font-size: 0.85em; }
+        .mini-stat strong { display: block; font-size: 1.2em; }
+
+        /* --- DROPDOWN MENU --- */
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-menu { display: none; position: absolute; right: 0; background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 6px; z-index: 100; min-width: 160px; border: 1px solid #eee; overflow: hidden; }
+        .dropdown:hover .dropdown-menu { display: block; }
+        .dropdown-item { padding: 10px 15px; cursor: pointer; display: block; width: 100%; text-align: left; border: none; background: none; font-size: 0.9em; transition: 0.2s; }
+        .dropdown-item:hover { background-color: #f8f9fa; color: #007bff; }
+        .dropdown-item.danger { color: #dc3545; } .dropdown-item.danger:hover { background-color: #fff5f5; }
+
+        /* --- WARNINGS & ALERTS --- */
         .warning-box { background: #fff3cd; color: #856404; padding: 10px; border: 1px solid #ffeeba; border-radius: 6px; margin-bottom: 15px; font-weight: bold; display: none; align-items: center; gap: 10px; }
         .warning-box.active { display: flex; }
+        .error-text { color: #dc3545; font-size: 0.8em; margin-top: 2px; display: none; }
+        input.invalid { border-color: #dc3545; background-color: #fff8f8; }
+
+        /* --- BADGES --- */
         .badge { padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; color: white; display: inline-block; }
         .badge.waiting { background-color: #ffc107; color: #333; }       
         .badge.doc { background-color: #0d6efd; color: #fff; }           
         .badge.investigation { background-color: #fd7e14; color: #fff; } 
         .badge.report { background-color: #6f42c1; color: #fff; }        
-        .badge.completed { background-color: #198754; color: #fff; }     
+        .badge.completed { background-color: #198754; color: #fff; }
+        .badge.cancelled { background-color: #6c757d; color: #fff; text-decoration: line-through; }
     </style>
 </head>
 <body>
@@ -28,56 +50,79 @@
         <img src="logo.png" alt="Logo" class="hospital-logo" onerror="this.style.display='none'">
         <div class="hospital-info">
             <h2>MSN Cataract and IOL Hospital</h2>
-            <p class="text-muted">Tilak Deka Road, Nagaon | Reception Desk</p>
+            <p class="text-muted">Reception Desk | <a href="index.html" style="text-decoration:none; color:var(--primary);">Back to Home</a></p>
+        </div>
+        <div style="margin-left:auto; font-size:0.8em; text-align:right; color:#777;">
+            <div>Shortcuts:</div>
+            <div><b>F1</b> Search | <b>F2</b> New | <b>Ctrl+S</b> Save</div>
         </div>
     </header>
 
     <div class="stats-row">
         <div class="stat-card blue">
             <span class="stat-number" id="stat-total">0</span>
-            <span class="stat-label">Total Patients (DB)</span>
+            <span class="stat-label">Total DB</span>
         </div>
-        <div class="stat-card green">
-            <span class="stat-number" id="stat-today">0</span>
-            <span class="stat-label">Today's OPD</span>
+        <div class="stat-card green" style="flex:2; display:block; padding:10px 20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                <span class="stat-label" style="margin:0;">Today's OPD</span>
+                <span class="stat-number" id="stat-today" style="font-size:1.5em;">0</span>
+            </div>
+            <div class="stats-breakdown" id="stats-breakdown">
+                <div class="mini-stat">Waiting <strong>0</strong></div>
+                <div class="mini-stat">In-Clinic <strong>0</strong></div>
+                <div class="mini-stat">Done <strong>0</strong></div>
+            </div>
         </div>
     </div>
 
     <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px;">
         <div style="display:flex; flex-direction:column; gap:20px;">
+            
             <section class="card" style="border-top: 4px solid #ffc107;">
-                <h3>1. Search Patient</h3>
-                <p class="text-muted" style="margin-bottom:10px;">Search by <strong>Patient ID</strong> or <strong>Phone</strong> to edit/visit.</p>
+                <h3>1. Search Patient (F1)</h3>
                 <div class="search-grid">
-                    <div><label>Patient ID</label><input id="search_pid" type="text" placeholder="P000..." style="text-transform: uppercase;"></div>
+                    <div><label>Patient ID</label><input id="search_pid" type="text" placeholder="P..." style="text-transform: uppercase;"></div>
                     <div><label>Phone</label><input id="search_phone" type="tel" placeholder="98..."></div>
                     <button type="button" onclick="searchPatient()" class="btn secondary">Find</button>
                 </div>
-                <div id="search-result" style="margin-top:10px; max-height: 200px; overflow-y:auto;"></div>
+                <ul id="search-result" style="margin-top:10px; max-height: 200px; overflow-y:auto; padding:0;"></ul>
             </section>
 
             <section class="card" style="border-top: 4px solid #007bff;">
-                <h3 style="margin-bottom: 15px;">2. Patient Details</h3>
+                <h3 style="margin-bottom: 15px;">2. Patient Details (F2)</h3>
                 <div id="age-warning-box" class="warning-box"></div>
+                
                 <form id="registrationForm" onsubmit="return false;">
                     <div class="row">
-                        <div class="col"><label>Patient ID (Auto)</label><input id="patient_id" type="text" placeholder="New" readonly style="background:#e8f0fe; color:#1967d2; font-weight:bold; border:1px solid #1967d2;"></div>
+                        <div class="col"><label>Patient ID</label><input id="patient_id" type="text" placeholder="New" readonly style="background:#e8f0fe; color:#1967d2; font-weight:bold;"></div>
                         <div class="col"><label>Date of Birth</label><input id="dob" type="date" onchange="calculateAge(this.value)"></div>
                     </div>
                     <div class="row">
-                        <div class="col wide"><label>Full Name <span style="color:red">*</span></label><input id="name" type="text" required placeholder="Enter Name" autocomplete="off"></div>
-                        <div class="col"><label>Age</label><input id="age" type="number" placeholder="0" style="width:60px;" oninput="checkAge(this.value)"></div>
+                        <div class="col wide">
+                            <label>Full Name <span style="color:red">*</span></label>
+                            <input id="name" type="text" required placeholder="Name" autocomplete="off">
+                        </div>
+                        <div class="col">
+                            <label>Age</label>
+                            <input id="age" type="number" placeholder="0" style="width:60px;" oninput="checkAge(this.value)">
+                        </div>
                         <div class="col"><label>Sex</label><select id="gender"><option>Male</option><option>Female</option><option>Other</option></select></div>
                     </div>
                     <div class="row">
-                        <div class="col wide"><label>Guardian / Care of</label><input id="guardian" type="text" placeholder="S/O, W/O..."></div>
-                        <div class="col"><label>Phone <span style="color:red">*</span></label><input id="phone" type="tel" required maxlength="10"></div>
+                        <div class="col wide"><label>Guardian / C/O</label><input id="guardian" type="text"></div>
+                        <div class="col">
+                            <label>Phone <span style="color:red">*</span></label>
+                            <input id="phone" type="tel" required maxlength="10">
+                            <div id="phone-error" class="error-text"></div>
+                        </div>
                     </div>
                     <div class="row">
-                        <div class="col narrow"><label>Pin</label><input id="pincode" type="text" placeholder="782..."></div>
+                        <div class="col narrow"><label>Pin</label><input id="pincode" type="text"></div>
                         <div class="col"><label>District</label><input id="district" type="text" value="Nagaon"></div>
-                        <div class="col wide"><label>Address</label><input id="address" type="text" list="local-places" placeholder="Village/Town"><datalist id="local-places"></datalist></div>
+                        <div class="col wide"><label>Address</label><input id="address" type="text" list="local-places"><datalist id="local-places"></datalist></div>
                     </div>
+                    
                     <div class="row" style="background: #e9f7ef; padding: 10px; border: 1px solid #c3e6cb; border-radius:4px;">
                         <div class="col wide">
                             <label style="color:#155724; font-weight:bold;">Assign Doctor</label>
@@ -89,14 +134,15 @@
                                 <option value="Dr. Sanjay Kr Buragohain">Dr. Sanjay Kr Buragohain</option>
                             </select>
                         </div>
-                        <div class="col"><label>Type</label><select id="visit_type"><option>New Case</option><option>Review / Follow-up</option><option>Surgery</option></select></div>
-                        <div class="col"><label>Reg. Fee (₹)</label><input id="fee" type="number" value="500"></div>
+                        <div class="col"><label>Type</label><select id="visit_type"><option>New Case</option><option>Review</option><option>Surgery</option></select></div>
+                        <div class="col"><label>Fee (₹)</label><input id="fee" type="number" value="500"></div>
                     </div>
+
                     <div class="actions" style="margin-top:15px; display:flex; gap:10px;">
-                        <button type="button" class="btn" id="saveBtn" onclick="savePatient()">💾 Save Registration</button>
-                        <button type="button" id="printLastBtn" class="btn warning hidden" onclick="printLastSlip()">🖨️ Print Slip</button>
-                        <button type="button" id="updateBtn" class="btn info hidden" onclick="updatePatientOnly()">Update Details</button>
-                        <button type="button" class="btn ghost" onclick="resetForm()">Reset Form</button>
+                        <button type="button" class="btn" id="saveBtn" onclick="savePatient()">💾 Save (Ctrl+S)</button>
+                        <button type="button" id="printLastBtn" class="btn warning hidden" onclick="printLastSlip()">🖨️ Slip (F5)</button>
+                        <button type="button" id="updateBtn" class="btn info hidden" onclick="updatePatientOnly()">Update Info</button>
+                        <button type="button" class="btn ghost" onclick="resetForm()">Reset</button>
                     </div>
                 </form>
             </section>
@@ -105,11 +151,11 @@
         <section class="card">
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <h3>Today's OPD List</h3>
-                <div style="font-size:0.8em; color:green; display:flex; align-items:center; gap:5px;"><span style="height:8px; width:8px; background:green; border-radius:50%; display:inline-block;"></span> Live Sync Active</div>
+                <div style="font-size:0.8em; color:green;">● Live Sync Active</div>
             </div>
-            <table id="patients-table" style="margin-top:15px;">
-                <thead><tr><th style="width: 100px;">OPD No.</th><th style="width: 80px;">PID</th><th>Name</th><th>Doctor</th><th>Status</th><th>Actions</th></tr></thead>
-                <tbody><tr><td colspan="6" class="loading">Connecting to Cloud...</td></tr></tbody>
+            <table id="patients-table" style="margin-top:15px; width:100%;">
+                <thead><tr><th>OPD</th><th>PID</th><th>Name</th><th>Doctor</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody><tr><td colspan="6" class="loading">Connecting...</td></tr></tbody>
             </table>
         </section>
     </div>
@@ -123,17 +169,28 @@
     const firebaseConfig = { apiKey: "AIzaSyBne_-4FcG5DjtUDVwdd1K-XDsHjX0JOEo", authDomain: "msn-hospital.firebaseapp.com", projectId: "msn-hospital", storageBucket: "msn-hospital.firebasestorage.app", messagingSenderId: "525072218332", appId: "1:525072218332:web:5940ec924f59db675adc19", measurementId: "G-FXXZ7STWDJ" };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+    window.db = db; window.updateDoc = updateDoc; window.doc = doc; // For global access
 
     let todayVisits = [];
     let lastSavedData = null; 
-    const nagaonPlaces = ["Nagaon Town", "Haibargaon", "Raha", "Kampur", "Dhing", "Rupahi", "Samaguri", "Kaliabor", "Jakhalabandha", "Hojai", "Lanka", "Doboka", "Lumding", "Batadrava", "Juria", "Kathiatoli", "Puranigudam", "Uriumgaon", "Nonoi", "Barhampur", "Chapanala"];
+    const nagaonPlaces = ["Nagaon Town", "Haibargaon", "Raha", "Kampur", "Dhing", "Rupahi", "Samaguri", "Kaliabor", "Jakhalabandha", "Hojai", "Lanka", "Doboka", "Lumding", "Batadrava", "Juria"];
 
+    // --- INITIALIZATION ---
     window.addEventListener('load', async () => {
         const dl = document.getElementById('local-places');
         nagaonPlaces.forEach(p => { const o = document.createElement('option'); o.value = p; dl.appendChild(o); });
         try { const coll = collection(db, "patients"); const snapshot = await getCountFromServer(coll); document.getElementById('stat-total').innerText = snapshot.data().count; } catch (e) {}
     });
 
+    // --- KEYBOARD SHORTCUTS ---
+    document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); document.getElementById('saveBtn').click(); }
+        if (e.key === 'F1') { e.preventDefault(); document.getElementById('search_pid').focus(); }
+        if (e.key === 'F2') { e.preventDefault(); resetForm(); document.getElementById('name').focus(); }
+        if (e.key === 'F5') { e.preventDefault(); if(lastSavedData) printLastSlip(); }
+    });
+
+    // --- REALTIME QUEUE & STATS ---
     function getTodayISO() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 
     const q = query(collection(db, "visits"), where("isoDate", "==", getTodayISO()));
@@ -142,12 +199,30 @@
         todayVisits = [];
         const tbody = document.querySelector('#patients-table tbody');
         tbody.innerHTML = '';
-        snapshot.docs.forEach(doc => { todayVisits.push({...doc.data(), id: doc.id}); });
         
-        // Sort by Time (FIFO)
+        let stats = { waiting: 0, clinic: 0, done: 0 };
+
+        snapshot.docs.forEach(doc => { 
+            const d = { ...doc.data(), id: doc.id };
+            todayVisits.push(d);
+            
+            // Count stats
+            if(d.status === 'Waiting') stats.waiting++;
+            else if(['With Doctor','Investigation','Report Ready'].includes(d.status)) stats.clinic++;
+            else if(d.status === 'Completed') stats.done++;
+        });
+        
+        // Sort FIFO
         todayVisits.sort((a,b) => (a.timestamp || 0) - (b.timestamp || 0));
         
+        // Update UI Stats
         document.getElementById('stat-today').innerText = todayVisits.length;
+        document.getElementById('stats-breakdown').innerHTML = `
+            <div class="mini-stat" style="color:#d39e00">Waiting <strong>${stats.waiting}</strong></div>
+            <div class="mini-stat" style="color:#0d6efd">In-Clinic <strong>${stats.clinic}</strong></div>
+            <div class="mini-stat" style="color:#198754">Done <strong>${stats.done}</strong></div>
+        `;
+
         if (todayVisits.length === 0) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px;">No patients yet today.</td></tr>'; return; }
 
         todayVisits.forEach(v => {
@@ -157,40 +232,115 @@
             else if(v.status === 'Investigation') badgeClass = 'investigation';
             else if(v.status === 'Report Ready') badgeClass = 'report';
             else if(v.status === 'Completed') badgeClass = 'completed';
+            else if(v.status === 'Cancelled') badgeClass = 'cancelled';
 
-            tr.innerHTML = `<td><strong>${v.opdId}</strong></td><td>${v.pid}</td><td>${v.patientName}<br><small>${v.age}Y / ${v.gender}</small></td><td>${v.doctor || '-'}</td><td><span class="badge ${badgeClass}">${v.status}</span></td><td><button class="btn small info" onclick="window.printSlip('${v.patientName}', '${v.opdId}', '${v.doctor}', '${v.pid}', '${v.age}', '${v.gender}')">🖨️ Slip</button></td>`;
+            tr.innerHTML = `
+                <td><strong>${v.opdId}</strong></td>
+                <td>${v.pid}</td>
+                <td>${v.patientName}<br><small>${v.age}Y / ${v.gender}</small></td>
+                <td>${v.doctor || '-'}</td>
+                <td><span class="badge ${badgeClass}">${v.status}</span></td>
+                <td>
+                    <div class="dropdown">
+                        <button class="btn small info">Options ▼</button>
+                        <div class="dropdown-menu">
+                            <button class="dropdown-item" onclick="window.printSlip('${v.patientName}', '${v.opdId}', '${v.doctor}', '${v.pid}', '${v.age}', '${v.gender}')">🖨️ Print Slip</button>
+                            <button class="dropdown-item" onclick="window.quickAction('${v.id}', 'Waiting')">⏳ Set Waiting</button>
+                            <button class="dropdown-item danger" onclick="window.quickAction('${v.id}', 'Cancelled')">🚫 Cancel</button>
+                        </div>
+                    </div>
+                </td>`;
             tbody.appendChild(tr);
         });
     });
 
+    // --- QUICK ACTIONS ---
+    window.quickAction = async function(id, status) {
+        if(!confirm(`Change status to ${status}?`)) return;
+        try { await updateDoc(doc(db, "visits", id), { status: status }); } 
+        catch(e) { alert("Error: " + e.message); }
+    };
+
+    // --- DUPLICATE CHECK ---
+    async function checkDuplicate(phone) {
+        const q = query(collection(db, "patients"), where("phone", "==", String(phone)));
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+            const p = snap.docs[0].data();
+            document.getElementById('phone').classList.add('invalid');
+            document.getElementById('phone-error').innerText = `⚠️ Duplicate: ${p.name} (${p.id})`;
+            document.getElementById('phone-error').style.display = 'block';
+            return p;
+        } else {
+            document.getElementById('phone').classList.remove('invalid');
+            document.getElementById('phone-error').style.display = 'none';
+            return null;
+        }
+    }
+    document.getElementById('phone').addEventListener('blur', (e) => checkDuplicate(e.target.value));
+
+    // --- SEARCH ---
     window.searchPatient = async function() {
         const pid = document.getElementById('search_pid').value.trim().toUpperCase();
         const phone = document.getElementById('search_phone').value.trim();
-        const resDiv = document.getElementById('search-result'); resDiv.innerHTML = 'Loading...';
+        const resDiv = document.getElementById('search-result');
+        
+        if(!pid && !phone) return;
+        
+        resDiv.innerHTML = '<li style="color:#666; justify-content:center;">Searching...</li>';
+        
         let q;
         if(pid) q = query(collection(db, "patients"), where("id", "==", pid));
-        else if(phone) q = query(collection(db, "patients"), where("phone", "==", String(phone))); 
-        else { resDiv.innerHTML = ''; return; }
+        else if(phone) q = query(collection(db, "patients"), where("phone", "==", String(phone)));
 
         try {
-            const snap = await getDocs(q); resDiv.innerHTML = '';
-            if(snap.empty) { resDiv.innerHTML = '<div style="padding:10px; color:red;">No patient found.</div>'; return; }
+            const snap = await getDocs(q);
+            resDiv.innerHTML = '';
+            
+            if(snap.empty) { 
+                resDiv.innerHTML = '<li style="color:red; justify-content:center;">No patient found.</li>'; 
+                return; 
+            }
+            
             snap.forEach(doc => {
-                const p = doc.data(); const div = document.createElement('li');
-                div.innerHTML = `<strong>${p.name}</strong> (${p.id}) - ${p.phone}`; div.onclick = () => fillForm(p); resDiv.appendChild(div);
+                const p = doc.data();
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <div>
+                        <strong>${p.name}</strong> <small>(${p.age}Y/${p.gender})</small><br>
+                        <span style="font-size:0.8em; color:#555;">${p.phone} | ${p.address||''}</span>
+                    </div>
+                    <div style="text-align:right;">
+                        <span class="badge" style="background:#eee; color:#333;">${p.id}</span>
+                    </div>`;
+                li.onclick = () => { 
+                    fillForm(p); 
+                    // Highlight logic
+                    document.querySelectorAll('#search-result li').forEach(l => l.classList.remove('selected'));
+                    li.classList.add('selected');
+                };
+                resDiv.appendChild(li);
             });
-        } catch (e) { resDiv.innerHTML = '<div style="color:red">Error searching database.</div>'; }
+        } catch (e) { resDiv.innerHTML = '<li style="color:red">Error searching DB</li>'; }
     }
 
     function fillForm(p) {
-        document.getElementById('patient_id').value = p.id; document.getElementById('name').value = p.name; document.getElementById('age').value = p.age; document.getElementById('dob').value = p.dob || ''; document.getElementById('gender').value = p.gender; document.getElementById('phone').value = p.phone; document.getElementById('address').value = p.address || ''; document.getElementById('guardian').value = p.guardian || ''; document.getElementById('district').value = p.district || 'Nagaon'; document.getElementById('pincode').value = p.pincode || ''; document.getElementById('visit_type').value = "Review / Follow-up"; document.getElementById('fee').value = "300"; 
-        document.getElementById('updateBtn').classList.remove('hidden'); document.getElementById('search-result').innerHTML = ''; window.checkAge(p.age);
+        document.getElementById('patient_id').value = p.id; document.getElementById('name').value = p.name; document.getElementById('age').value = p.age; document.getElementById('dob').value = p.dob || ''; document.getElementById('gender').value = p.gender; document.getElementById('phone').value = p.phone; document.getElementById('address').value = p.address || ''; document.getElementById('guardian').value = p.guardian || ''; document.getElementById('district').value = p.district || 'Nagaon'; document.getElementById('pincode').value = p.pincode || ''; document.getElementById('visit_type').value = "Review"; document.getElementById('fee').value = "300"; 
+        document.getElementById('updateBtn').classList.remove('hidden'); window.checkAge(p.age);
     }
 
+    // --- SAVE LOGIC ---
     window.savePatient = async function() {
         const name = document.getElementById('name').value; const phone = document.getElementById('phone').value; const doctor = document.getElementById('assigned_doctor').value;
         if(!name || !phone || !doctor) { alert("Please fill Name, Phone, and select a Doctor."); return; }
         if(!/^\d{10}$/.test(phone)) { alert("Phone number must be exactly 10 digits."); return; }
+
+        // Duplicate Check before save
+        const isEditMode = document.getElementById('updateBtn').classList.contains('hidden') === false;
+        if(!isEditMode) {
+            const dup = await checkDuplicate(phone);
+            if(dup && !confirm(`⚠️ Patient ${dup.name} already exists with this phone.\n\nCreate duplicate entry anyway?`)) return;
+        }
 
         const btn = document.getElementById('saveBtn'); btn.innerText = "Processing..."; btn.disabled = true;
         try {
@@ -203,10 +353,11 @@
             }
 
             const opdBase = todayVisits.length + 1; const opdId = `${opdBase}`; 
-            // IMPORTANT: Address is now saved in the visit for easy access by Doctor/Opto
+            
+            // Saving Address for Doctor View
             await addDoc(collection(db, "visits"), {
                 pid: finalPid, patientName: name, age, gender, phone: String(phone),
-                address: document.getElementById('address').value, // <--- SAVING ADDRESS HERE
+                address: document.getElementById('address').value,
                 doctor, opdId, status: "Waiting",
                 date: new Date().toLocaleDateString('en-GB'), isoDate: getTodayISO(),
                 type: document.getElementById('visit_type').value, fee: document.getElementById('fee').value, timestamp: Date.now()
@@ -218,6 +369,7 @@
     }
 
     window.printLastSlip = function() { if(!lastSavedData) return; window.printSlip(lastSavedData.name, lastSavedData.opdId, lastSavedData.doctor, lastSavedData.pid, lastSavedData.age, lastSavedData.gender); if(confirm("Slip Printed. Clear form?")) resetForm(); };
+    
     window.updatePatientOnly = async function() {
         const pid = document.getElementById('patient_id').value; if(!pid || pid === 'New') return;
         try {
@@ -233,7 +385,7 @@
         win.document.close(); win.onload = function() { win.print(); win.close(); };
     }
 
-    window.resetForm = function() { document.getElementById('registrationForm').reset(); document.getElementById('patient_id').value = ""; document.getElementById('search-result').innerHTML = ""; document.getElementById('updateBtn').classList.add('hidden'); document.getElementById('printLastBtn').classList.add('hidden'); document.getElementById('saveBtn').innerText = "💾 Save Registration"; document.getElementById('saveBtn').disabled = false; document.getElementById('age-warning-box').className = "warning-box"; lastSavedData = null; }
+    window.resetForm = function() { document.getElementById('registrationForm').reset(); document.getElementById('patient_id').value = ""; document.getElementById('search-result').innerHTML = ""; document.getElementById('updateBtn').classList.add('hidden'); document.getElementById('printLastBtn').classList.add('hidden'); document.getElementById('saveBtn').innerText = "💾 Save (Ctrl+S)"; document.getElementById('saveBtn').disabled = false; document.getElementById('age-warning-box').className = "warning-box"; document.getElementById('phone').classList.remove('invalid'); document.getElementById('phone-error').style.display='none'; lastSavedData = null; }
     window.calculateAge = function(dob) { if(!dob) return; const d = new Date(dob); const diff = Date.now() - d.getTime(); const age = Math.abs(new Date(diff).getUTCFullYear() - 1970); document.getElementById('age').value = age; window.checkAge(age); }
     window.checkAge = function(age) { const box = document.getElementById('age-warning-box'); if(!age) { box.className="warning-box"; return; } if(age < 12) { box.innerText = "⚠️ Paediatric Patient (Child)"; box.className="warning-box active"; } else if(age >= 60) { box.innerText = "⚠️ Senior Citizen"; box.className="warning-box active"; } else { box.className="warning-box"; } }
 </script>

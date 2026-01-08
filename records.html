@@ -41,75 +41,34 @@
     const firebaseConfig = { apiKey: "AIzaSyBne_-4FcG5DjtUDVwdd1K-XDsHjX0JOEo", authDomain: "msn-hospital.firebaseapp.com", projectId: "msn-hospital", storageBucket: "msn-hospital.firebasestorage.app", messagingSenderId: "525072218332", appId: "1:525072218332:web:5940ec924f59db675adc19", measurementId: "G-FXXZ7STWDJ" };
     const app = initializeApp(firebaseConfig); const db = getFirestore(app);
     let allPatients = [];
-
-    // FIX 4: Access Control
-    // Note: For strict security, use Firebase Auth. This is a basic gatekeeper.
-    // if(!localStorage.getItem('loggedInDoctor')) { window.location.href = "index.html"; }
-
     window.onload = async function() { const q = query(collection(db, "patients")); const snap = await getDocs(q); allPatients = snap.docs.map(doc => doc.data()); };
-
-    // FIX 2: Safe CSV Export
-    const esc = (val) => `"${(val || '').toString().replace(/"/g, '""')}"`; // Escape commas and quotes
+    const esc = (val) => `"${(val || '').toString().replace(/"/g, '""')}"`;
     window.exportToCSV = function() {
         if(allPatients.length === 0) { alert("No data to export. Wait for page to load."); return; }
         let csvContent = "data:text/csv;charset=utf-8,Patient ID,Name,Age,Gender,Phone,District,Address\n";
-        allPatients.forEach(p => {
-            csvContent += `${esc(p.id)},${esc(p.name)},${p.age},${p.gender},${esc(p.phone)},${esc(p.district)},${esc(p.address)}\n`;
-        });
+        allPatients.forEach(p => { csvContent += `${esc(p.id)},${esc(p.name)},${p.age},${p.gender},${esc(p.phone)},${esc(p.district)},${esc(p.address)}\n`; });
         const encodedUri = encodeURI(csvContent); const link = document.createElement("a"); link.setAttribute("href", encodedUri); link.setAttribute("download", "msn_hospital_patients_backup.csv"); document.body.appendChild(link); link.click();
     };
-
-    // FIX 1: Safe Search
     window.searchPatient = function() {
         const term = document.getElementById('search_input').value.trim().toLowerCase(); if(!term) return;
-        const results = allPatients.filter(p => 
-            (p.name || '').toLowerCase().includes(term) || 
-            (p.phone || '').toString().includes(term) || 
-            (p.id || '').toLowerCase().includes(term)
-        );
+        const results = allPatients.filter(p => (p.name || '').toLowerCase().includes(term) || (p.phone || '').toString().includes(term) || (p.id || '').toLowerCase().includes(term));
         const list = document.getElementById('patient-list'); list.innerHTML = '';
         if(results.length === 0) { list.innerHTML = '<div style="padding:10px; color:red;">No patient found.</div>'; } else {
             results.forEach(p => { const div = document.createElement('div'); div.className = 'patient-result'; div.innerHTML = `<strong>${p.name}</strong> (${p.age}Y/${p.gender}) <br> <small>PID: ${p.id} | Phone: ${p.phone}</small>`; div.onclick = () => loadVisits(p); list.appendChild(div); });
         }
         document.getElementById('results-area').classList.remove('hidden'); document.getElementById('timeline-area').classList.add('hidden');
     };
-
     window.loadVisits = async function(patient) {
         document.getElementById('results-area').classList.add('hidden'); document.getElementById('timeline-area').classList.remove('hidden');
         document.getElementById('t-name').innerText = patient.name; document.getElementById('t-info').innerText = `PID: ${patient.id} | ${patient.address || ''}`;
         const feed = document.getElementById('timeline-feed'); feed.innerHTML = '<div style="padding:20px;">Loading History...</div>';
-        
         const q = query(collection(db, "visits"), where("pid", "==", patient.id)); const snap = await getDocs(q);
-        
-        // FIX 5: Safe Sort
         const visits = snap.docs.map(doc => doc.data()).sort((a,b) => (b.timestamp || 0) - (a.timestamp || 0));
-
         feed.innerHTML = ''; if(visits.length === 0) { feed.innerHTML = '<p>No previous visits found.</p>'; return; }
-        
         visits.forEach(v => {
-            // FIX 3: Date Normalization
-            let displayDate = v.date;
-            if(v.isoDate) {
-                // If isoDate exists (YYYY-MM-DD), format it nicely
-                const parts = v.isoDate.split('-');
-                if(parts.length === 3) displayDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
-            }
-
+            let displayDate = v.date; if(v.isoDate) { const parts = v.isoDate.split('-'); if(parts.length === 3) displayDate = `${parts[2]}/${parts[1]}/${parts[0]}`; }
             const d = v.doctorData || {}; const o = v.optoData || {}; const safe = (obj, path) => path.split('.').reduce((acc, part) => acc && acc[part], obj) || '-';
-            
-            feed.innerHTML += `
-            <div class="visit-card">
-                <div class="visit-header" onclick="this.nextElementSibling.classList.toggle('open')">
-                    <div><strong>${displayDate}</strong> <span class="badge doc">${v.type || 'OPD'}</span> <span style="font-size:0.85em; color:#555;">| ${v.opdId} | ${v.doctor}</span></div>
-                    <div style="font-size:1.2em;">Details ▼</div>
-                </div>
-                <div class="visit-body">
-                    <div class="data-grid">
-                        <div style="background:#f4f9ff; padding:10px; border-radius:5px;"><div class="section-title">🩺 Doctor's Notes</div><div><strong>Diagnosis:</strong> ${d.diagnosis || '-'}</div><div style="margin-top:5px;"><strong>Advice:</strong> <pre style="white-space:pre-wrap; font-family:inherit; margin:0;">${d.advice || '-'}</pre></div><div style="margin-top:10px; font-weight:bold; font-size:0.9em;">Rx (Medicines):</div>${(d.meds || []).map(m => `<div style="padding-left:10px; border-left:2px solid #ccc; margin-top:2px;">${m.name} - ${m.dose} (${m.freq})</div>`).join('') || 'None'}</div>
-                        <div style="background:#fff9e6; padding:10px; border-radius:5px;"><div class="section-title">👁️ Optometry Data</div><div class="field-row"><span>Vision:</span> <span>OD: ${safe(o, 'va.od.dist')} | OS: ${safe(o, 'va.os.dist')}</span></div><div class="field-row"><span>Refraction:</span> <span>OD: ${safe(o, 'refraction.od.sph')}/${safe(o, 'refraction.od.cyl')}</span></div><div class="field-row"><span></span> <span>OS: ${safe(o, 'refraction.os.sph')}/${safe(o, 'refraction.os.cyl')}</span></div><div style="margin-top:5px; font-weight:bold; font-size:0.9em; margin-bottom:5px;">External Exam:</div><div class="field-row"><span>Ext:</span> <span>${safe(o, 'external.od.ext')} | ${safe(o, 'external.os.ext')}</span></div><div class="field-row"><span>Cover (N):</span> <span>${safe(o, 'external.od.ct_near')} | ${safe(o, 'external.os.ct_near')}</span></div><div style="margin-top:5px; font-weight:bold; font-size:0.9em; margin-bottom:5px;">Slit Lamp:</div><div class="sl-grid"><div>Str.</div><div>OD</div><div>OS</div><div>Lids</div><div>${safe(o, 'slitlamp.od.lids')}</div><div>${safe(o, 'slitlamp.os.lids')}</div><div>Corn</div><div>${safe(o, 'slitlamp.od.corn')}</div><div>${safe(o, 'slitlamp.os.corn')}</div><div>Lens</div><div>${safe(o, 'slitlamp.lens_od')}</div><div>${safe(o, 'slitlamp.lens_os')}</div></div><div class="field-row" style="margin-top:5px;"><span>IOP:</span> <span>${safe(o, 'slitlamp.iop_od')} / ${safe(o, 'slitlamp.iop_os')}</span></div></div>
-                    </div>
-                </div>
-            </div>`;
+            feed.innerHTML += `<div class="visit-card"><div class="visit-header" onclick="this.nextElementSibling.classList.toggle('open')"><div><strong>${displayDate}</strong> <span class="badge doc">${v.type || 'OPD'}</span> <span style="font-size:0.85em; color:#555;">| ${v.opdId} | ${v.doctor}</span></div><div style="font-size:1.2em;">Details ▼</div></div><div class="visit-body"><div class="data-grid"><div style="background:#f4f9ff; padding:10px; border-radius:5px;"><div class="section-title">🩺 Doctor's Notes</div><div><strong>Diagnosis:</strong> ${d.diagnosis || '-'}</div><div style="margin-top:5px;"><strong>Advice:</strong> <pre style="white-space:pre-wrap; font-family:inherit; margin:0;">${d.advice || '-'}</pre></div><div style="margin-top:10px; font-weight:bold; font-size:0.9em;">Rx (Medicines):</div>${(d.meds || []).map(m => `<div style="padding-left:10px; border-left:2px solid #ccc; margin-top:2px;">${m.name} - ${m.dose} (${m.freq})</div>`).join('') || 'None'}</div><div style="background:#fff9e6; padding:10px; border-radius:5px;"><div class="section-title">👁️ Optometry Data</div><div class="field-row"><span>Vision:</span> <span>OD: ${safe(o, 'va.od.dist')} | OS: ${safe(o, 'va.os.dist')}</span></div><div class="field-row"><span>Refraction:</span> <span>OD: ${safe(o, 'refraction.od.sph')}/${safe(o, 'refraction.od.cyl')}</span></div><div class="field-row"><span></span> <span>OS: ${safe(o, 'refraction.os.sph')}/${safe(o, 'refraction.os.cyl')}</span></div><div style="margin-top:5px; font-weight:bold; font-size:0.9em; margin-bottom:5px;">External Exam:</div><div class="field-row"><span>Ext:</span> <span>${safe(o, 'external.od.ext')} | ${safe(o, 'external.os.ext')}</span></div><div class="field-row"><span>Cover (N):</span> <span>${safe(o, 'external.od.ct_near')} | ${safe(o, 'external.os.ct_near')}</span></div><div style="margin-top:5px; font-weight:bold; font-size:0.9em; margin-bottom:5px;">Slit Lamp:</div><div class="sl-grid"><div>Str.</div><div>OD</div><div>OS</div><div>Lids</div><div>${safe(o, 'slitlamp.od.lids')}</div><div>${safe(o, 'slitlamp.os.lids')}</div><div>Corn</div><div>${safe(o, 'slitlamp.od.corn')}</div><div>${safe(o, 'slitlamp.os.corn')}</div><div>Lens</div><div>${safe(o, 'slitlamp.lens_od')}</div><div>${safe(o, 'slitlamp.lens_os')}</div></div><div class="field-row" style="margin-top:5px;"><span>IOP:</span> <span>${safe(o, 'slitlamp.iop_od')} / ${safe(o, 'slitlamp.iop_os')}</span></div></div></div></div></div>`;
         });
     };
 </script>
