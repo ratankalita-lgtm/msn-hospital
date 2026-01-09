@@ -6,45 +6,25 @@
     <title>Reception - MSN Hospital</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* --- SEARCH RESULTS --- */
-        #search-result li { 
-            cursor: pointer; transition: all 0.2s; padding: 12px; border-bottom: 1px solid #eee; 
-            border-left: 4px solid transparent; list-style: none; display: flex; justify-content: space-between; align-items: center;
-        }
-        #search-result li:hover { background-color: #f8f9fa; border-left-color: #ccc; }
-        #search-result li.selected { background-color: #e3f2fd; border-left-color: #007bff; }
-        
-        /* --- STATS CARDS --- */
-        .stats-breakdown { display: flex; gap: 10px; margin-top: 10px; }
-        .mini-stat { flex: 1; background: #fff; padding: 8px; border-radius: 6px; text-align: center; border: 1px solid #eee; font-size: 0.85em; }
-        .mini-stat strong { display: block; font-size: 1.2em; }
-
-        /* --- DROPDOWN MENU --- */
-        .dropdown { position: relative; display: inline-block; }
-        .dropdown-menu { display: none; position: absolute; right: 0; background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 6px; z-index: 100; min-width: 160px; border: 1px solid #eee; overflow: hidden; }
-        .dropdown:hover .dropdown-menu { display: block; }
-        .dropdown-item { padding: 10px 15px; cursor: pointer; display: block; width: 100%; text-align: left; border: none; background: none; font-size: 0.9em; transition: 0.2s; }
-        .dropdown-item:hover { background-color: #f8f9fa; color: #007bff; }
-        .dropdown-item.danger { color: #dc3545; } .dropdown-item.danger:hover { background-color: #fff5f5; }
-
-        /* --- WARNINGS & ALERTS --- */
+        #search-result li { cursor: pointer; transition: background 0.2s; padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
+        #search-result li:hover { background-color: #f8f9fa; }
+        #search-result li.selected { background-color: #e3f2fd; border-left: 4px solid #007bff; }
+        .search-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end; }
+        .loading { color: #007bff; font-weight: bold; text-align: center; padding: 10px; }
         .warning-box { background: #fff3cd; color: #856404; padding: 10px; border: 1px solid #ffeeba; border-radius: 6px; margin-bottom: 15px; font-weight: bold; display: none; align-items: center; gap: 10px; }
         .warning-box.active { display: flex; }
-        .error-text { color: #dc3545; font-size: 0.8em; margin-top: 2px; display: none; }
-        input.invalid { border-color: #dc3545; background-color: #fff8f8; }
-
-        /* --- BADGES --- */
-        .badge { padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; color: white; display: inline-block; }
-        .badge.waiting { background-color: #ffc107; color: #333; }       
-        .badge.doc { background-color: #0d6efd; color: #fff; }           
-        .badge.investigation { background-color: #fd7e14; color: #fff; } 
-        .badge.report { background-color: #6f42c1; color: #fff; }        
-        .badge.completed { background-color: #198754; color: #fff; }
-        .badge.cancelled { background-color: #6c757d; color: #fff; text-decoration: line-through; }
+        .stats-breakdown { display: flex; gap: 10px; margin-top: 10px; }
+        .mini-stat { flex: 1; background: #fff; padding: 8px; border-radius: 6px; text-align: center; border: 1px solid #eee; font-size: 0.85em; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-menu { display: none; position: absolute; right: 0; background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 6px; z-index: 100; min-width: 160px; border: 1px solid #eee; }
+        .dropdown:hover .dropdown-menu { display: block; }
+        .dropdown-item { padding: 10px 15px; cursor: pointer; display: block; width: 100%; text-align: left; border: none; background: none; transition: 0.2s; }
+        .dropdown-item:hover { background-color: #f8f9fa; }
+        .dropdown-item.danger { color: #dc3545; }
     </style>
 </head>
 <body>
-
+<div id="toast-container"></div>
 <div class="container">
     <header class="hospital-header">
         <img src="logo.png" alt="Logo" class="hospital-logo" onerror="this.style.display='none'">
@@ -114,7 +94,7 @@
                         <div class="col">
                             <label>Phone <span style="color:red">*</span></label>
                             <input id="phone" type="tel" required maxlength="10">
-                            <div id="phone-error" class="error-text"></div>
+                            <div id="phone-error" class="error-text" style="color:red; font-size:0.8em; display:none;"></div>
                         </div>
                     </div>
                     <div class="row">
@@ -200,23 +180,26 @@
         const tbody = document.querySelector('#patients-table tbody');
         tbody.innerHTML = '';
         
-        let stats = { waiting: 0, clinic: 0, done: 0 };
+        let stats = { waiting: 0, clinic: 0, done: 0, total: 0 };
 
         snapshot.docs.forEach(doc => { 
             const d = { ...doc.data(), id: doc.id };
             todayVisits.push(d);
             
-            // Count stats
-            if(d.status === 'Waiting') stats.waiting++;
-            else if(['With Doctor','Investigation','Report Ready'].includes(d.status)) stats.clinic++;
-            else if(d.status === 'Completed') stats.done++;
+            // Fix 4: Exclude Cancelled from stats
+            if(d.status !== 'Cancelled') {
+                stats.total++;
+                if(d.status === 'Waiting') stats.waiting++;
+                else if(['With Doctor','Investigation','Report Ready'].includes(d.status)) stats.clinic++;
+                else if(d.status === 'Completed') stats.done++;
+            }
         });
         
         // Sort FIFO
         todayVisits.sort((a,b) => (a.timestamp || 0) - (b.timestamp || 0));
         
         // Update UI Stats
-        document.getElementById('stat-today').innerText = todayVisits.length;
+        document.getElementById('stat-today').innerText = stats.total;
         document.getElementById('stats-breakdown').innerHTML = `
             <div class="mini-stat" style="color:#d39e00">Waiting <strong>${stats.waiting}</strong></div>
             <div class="mini-stat" style="color:#0d6efd">In-Clinic <strong>${stats.clinic}</strong></div>
@@ -331,20 +314,35 @@
 
     // --- SAVE LOGIC ---
     window.savePatient = async function() {
+        // Fix 2: Safety Check for "Edit Mode" accidental save
+        if (!document.getElementById('updateBtn').classList.contains('hidden')) {
+            if(!confirm("⚠️ Patient loaded. Create a NEW VISIT for today?\n(Click Cancel to just update patient info)")) return;
+        }
+
         const name = document.getElementById('name').value; const phone = document.getElementById('phone').value; const doctor = document.getElementById('assigned_doctor').value;
         if(!name || !phone || !doctor) { alert("Please fill Name, Phone, and select a Doctor."); return; }
         if(!/^\d{10}$/.test(phone)) { alert("Phone number must be exactly 10 digits."); return; }
 
-        // Duplicate Check before save
+        // Duplicate Check before save (if not explicitly creating repeat visit)
         const isEditMode = document.getElementById('updateBtn').classList.contains('hidden') === false;
         if(!isEditMode) {
             const dup = await checkDuplicate(phone);
             if(dup && !confirm(`⚠️ Patient ${dup.name} already exists with this phone.\n\nCreate duplicate entry anyway?`)) return;
         }
+        
+        // Prevent duplicate visit on SAME day
+        const pidInput = document.getElementById('patient_id').value;
+        if(pidInput && pidInput !== 'New') {
+             const alreadyBooked = todayVisits.find(v => v.pid === pidInput && v.status !== 'Cancelled');
+             if(alreadyBooked) {
+                 alert(`⚠️ This patient is already booked today (OPD ${alreadyBooked.opdId}).`);
+                 return;
+             }
+        }
 
         const btn = document.getElementById('saveBtn'); btn.innerText = "Processing..."; btn.disabled = true;
         try {
-            const pidInput = document.getElementById('patient_id').value; const age = document.getElementById('age').value; const gender = document.getElementById('gender').value; const dob = document.getElementById('dob').value;
+            const age = document.getElementById('age').value; const gender = document.getElementById('gender').value; const dob = document.getElementById('dob').value;
             const isNew = !pidInput || pidInput === 'New' || pidInput === ''; let finalPid = pidInput;
             
             if(isNew) {
@@ -352,7 +350,8 @@
                 await setDoc(doc(db, "patients", finalPid), { id: finalPid, name, age, gender, phone: String(phone), dob, address: document.getElementById('address').value, guardian: document.getElementById('guardian').value, district: document.getElementById('district').value, pincode: document.getElementById('pincode').value, createdAt: new Date().toISOString() });
             }
 
-            const opdBase = todayVisits.length + 1; const opdId = `${opdBase}`; 
+            // Fix 1: Use Unique Timestamp Token for OPD ID
+            const opdId = Date.now().toString().slice(-5);
             
             // Saving Address for Doctor View
             await addDoc(collection(db, "visits"), {
@@ -365,7 +364,7 @@
 
             alert("✅ Saved! OPD ID: " + opdId);
             lastSavedData = { name, opdId, doctor, pid: finalPid, age, gender }; document.getElementById('printLastBtn').classList.remove('hidden'); document.getElementById('saveBtn').innerText = "Saved ✅";
-        } catch(e) { alert("Error: " + e.message); btn.innerText = "💾 Save Registration"; btn.disabled = false; } 
+        } catch(e) { alert("Error: " + e.message); btn.innerText = "💾 Save (Ctrl+S)"; btn.disabled = false; } 
     }
 
     window.printLastSlip = function() { if(!lastSavedData) return; window.printSlip(lastSavedData.name, lastSavedData.opdId, lastSavedData.doctor, lastSavedData.pid, lastSavedData.age, lastSavedData.gender); if(confirm("Slip Printed. Clear form?")) resetForm(); };
@@ -375,7 +374,7 @@
         try {
             const btn = document.getElementById('updateBtn'); btn.innerText = "Updating...";
             await updateDoc(doc(db, "patients", pid), { name: document.getElementById('name').value, age: document.getElementById('age').value, phone: String(document.getElementById('phone').value), gender: document.getElementById('gender').value, dob: document.getElementById('dob').value, address: document.getElementById('address').value, district: document.getElementById('district').value, pincode: document.getElementById('pincode').value, guardian: document.getElementById('guardian').value });
-            alert("Patient Details Updated!"); btn.innerText = "Update Details";
+            alert("Patient Details Updated!"); btn.innerText = "Update Info";
         } catch(e) { alert(e.message); }
     }
 
@@ -385,8 +384,10 @@
         win.document.close(); win.onload = function() { win.print(); win.close(); };
     }
 
-    window.resetForm = function() { document.getElementById('registrationForm').reset(); document.getElementById('patient_id').value = ""; document.getElementById('search-result').innerHTML = ""; document.getElementById('updateBtn').classList.add('hidden'); document.getElementById('printLastBtn').classList.add('hidden'); document.getElementById('saveBtn').innerText = "💾 Save (Ctrl+S)"; document.getElementById('saveBtn').disabled = false; document.getElementById('age-warning-box').className = "warning-box"; document.getElementById('phone').classList.remove('invalid'); document.getElementById('phone-error').style.display='none'; lastSavedData = null; }
-    window.calculateAge = function(dob) { if(!dob) return; const d = new Date(dob); const diff = Date.now() - d.getTime(); const age = Math.abs(new Date(diff).getUTCFullYear() - 1970); document.getElementById('age').value = age; window.checkAge(age); }
+    window.resetForm = function() { document.getElementById('registrationForm').reset(); document.getElementById('patient_id').value = ""; document.getElementById('search-result').innerHTML = ""; document.getElementById('updateBtn').classList.add('hidden'); document.getElementById('printLastBtn').classList.add('hidden'); document.getElementById('saveBtn').innerText = "💾 Save (Ctrl+S)"; document.getElementById('saveBtn').disabled = false; document.getElementById('age-warning-box').className = "warning-box"; document.getElementById('phone').classList.remove('invalid'); document.getElementById('phone-error').style.display='none'; document.getElementById('age').readOnly=false; lastSavedData = null; }
+    
+    // Fix 3: Lock age if DOB is set
+    window.calculateAge = function(dob) { if(!dob) return; const d = new Date(dob); const diff = Date.now() - d.getTime(); const age = Math.abs(new Date(diff).getUTCFullYear() - 1970); document.getElementById('age').value = age; document.getElementById('age').readOnly = true; window.checkAge(age); }
     window.checkAge = function(age) { const box = document.getElementById('age-warning-box'); if(!age) { box.className="warning-box"; return; } if(age < 12) { box.innerText = "⚠️ Paediatric Patient (Child)"; box.className="warning-box active"; } else if(age >= 60) { box.innerText = "⚠️ Senior Citizen"; box.className="warning-box active"; } else { box.className="warning-box"; } }
 </script>
 </body>

@@ -197,6 +197,7 @@
     let allPatients = []; 
     let systemicDiseasesList = [];
     let autoSaveTimer = null;
+    let autoSaveAttached = false; // FIX: prevent duplicate listeners
 
     onSnapshot(collection(db, "patients"), (snapshot) => {
         allPatients = snapshot.docs.map(doc => doc.data());
@@ -211,12 +212,14 @@
 
     // --- AUTO SAVE LOGIC ---
     function setupAutoSave() {
+        if(autoSaveAttached) return; // FIX: Guard clause
         document.getElementById('optoForm').addEventListener('input', () => {
             if(autoSaveTimer) clearTimeout(autoSaveTimer);
             autoSaveTimer = setTimeout(() => {
                 if(currentVisit) localStorage.setItem('draft_' + currentVisit.pid, JSON.stringify(gatherData()));
-            }, 30000); // 30 sec debounce
+            }, 30000); 
         });
+        autoSaveAttached = true;
     }
 
     function checkDraft(pid) {
@@ -262,7 +265,6 @@
         
         if(currentVisit.optoData) populateForm(currentVisit.optoData);
         
-        // Check for local draft
         checkDraft(currentVisit.pid);
         setupAutoSave();
 
@@ -298,7 +300,8 @@
 
     function gatherData() {
         return {
-            history: { complaint: v('chief_complaint'), ocular_hx: v('ocular_history'), systemic: systemicDiseasesList.map(x => x.name).join(', '), allergies: v('allergies') },
+            // FIX: Include duration in systemic disease list
+            history: { complaint: v('chief_complaint'), ocular_hx: v('ocular_history'), systemic: systemicDiseasesList.map(x => x.name + (x.dur ? ` (${x.dur})` : '')).join(', '), allergies: v('allergies') },
             pgp: { od: { sph: v('pgp_sph_od'), cyl: v('pgp_cyl_od'), ax: v('pgp_ax_od'), add: v('pgp_add_od') }, os: { sph: v('pgp_sph_os'), cyl: v('pgp_cyl_os'), ax: v('pgp_ax_os'), add: v('pgp_add_os') } },
             va: { od: { dist: v('va_od_dist'), rx: v('va_od_rx'), ph: v('va_od_ph'), near: v('va_od_near') }, os: { dist: v('va_os_dist'), rx: v('va_os_rx'), ph: v('va_os_ph'), near: v('va_os_near') } },
             external: { od: { ext: v('ext_od'), eom: v('eom_od'), ct_dist: v('ct_dist_od'), ct_near: v('ct_near_od') }, os: { ext: v('ext_os'), eom: v('eom_os'), ct_dist: v('ct_dist_os'), ct_near: v('ct_near_os') } },
@@ -425,6 +428,7 @@
         const d = new Date().toLocaleDateString('en-GB'); 
         const win = window.open('', '', 'width=800,height=600');
         
+        // FIX: Replaced undefined variable loggedInDoctor with generic title or local storage value
         const content = `
         <html><head><title>Glasses Rx</title><base href="${window.location.href}"><style>body{font-family:sans-serif;padding:30px;} table{width:100%;border-collapse:collapse;margin-top:20px;} th, td{border:1px solid #000;padding:12px;text-align:center;}</style></head><body onload="setTimeout(function(){window.print();window.close()}, 800)">
             <div style="text-align:center;border-bottom:3px solid #004085;padding-bottom:10px;margin-bottom:20px;">
@@ -435,7 +439,7 @@
             <h3 style="text-align:center;text-decoration:underline;">Spectacle Prescription</h3>
             <p><strong>Name:</strong> ${n} &nbsp;&nbsp; <strong>Date:</strong> ${d} &nbsp;&nbsp; <strong>Age:</strong> ${currentVisit.age}Y</p>
             <table><thead><tr><th>Eye</th><th>Sph</th><th>Cyl</th><th>Axis</th><th>Add</th><th>VA</th></tr></thead><tbody><tr><td>OD</td><td>${v('rx_sph_od')}</td><td>${v('rx_cyl_od')}</td><td>${v('rx_ax_od')}</td><td>${v('rx_add_od')}</td><td>${v('rx_va_od')}</td></tr><tr><td>OS</td><td>${v('rx_sph_os')}</td><td>${v('rx_cyl_os')}</td><td>${v('rx_ax_os')}</td><td>${v('rx_add_os')}</td><td>${v('rx_va_os')}</td></tr></tbody></table>
-            <br><br><div style="text-align:right;"><strong>${loggedInDoctor || 'Optometrist'}</strong><br>Signature</div>
+            <br><br><div style="text-align:right;"><strong>Optometrist</strong><br>Signature</div>
         </body></html>`;
         
         win.document.write(content); win.document.close();
