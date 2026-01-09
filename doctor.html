@@ -21,7 +21,6 @@
         .status-ready { background: #d4edda; color: #155724; padding: 2px 8px; border-radius: 12px; font-size:0.8em; font-weight: bold; }
         .dilation-badge { background: #e0cffc; color: #5e35b1; padding: 4px 10px; border-radius: 12px; font-size:0.8em; font-weight: bold; margin-left: 10px; border: 1px solid #b39ddb; }
         .warning-box { background: #fff3cd; color: #856404; padding: 10px; border: 1px solid #ffeeba; border-radius: 6px; margin-bottom: 15px; font-weight: bold; display: flex; align-items: center; gap: 10px; }
-        
         table { width: 100%; border-collapse: separate; border-spacing: 0; }
         th { background: #f8f9fa; color: #495057; padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6; }
         td { padding: 12px; border-bottom: 1px solid #dee2e6; vertical-align: middle; }
@@ -33,7 +32,7 @@
         .od-input { border: 1px solid #ff9999; background-color: #fff5f5; color: #d60000; }
         .os-input { border: 1px solid #99ccff; background-color: #f0f8ff; color: #004085; }
 
-        /* --- NEW: TOAST NOTIFICATIONS --- */
+        /* TOAST NOTIFICATIONS */
         #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; }
         .toast { background: #333; color: white; padding: 12px 20px; border-radius: 4px; margin-bottom: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); animation: slideIn 0.3s ease-out; display: flex; align-items: center; gap: 10px; }
         .toast.success { background: #28a745; }
@@ -41,7 +40,7 @@
         .toast.warning { background: #ffc107; color: #333; }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
-        /* --- DARK MODE SUPPORT --- */
+        /* DARK MODE */
         @media (prefers-color-scheme: dark) {
             body { background: #121212; color: #e0e0e0; }
             .container { background: #1e1e1e; }
@@ -101,7 +100,7 @@
             <div style="display:grid; grid-template-columns: 1fr 1fr 1.5fr; gap:10px; margin-bottom:50px;">
                 <button type="button" class="btn" onclick="window.sendToInvestigation()" style="background-color: #ffc107; color: #000; border:none; padding:15px; font-size:1.1em;">🔬 Order Inv.</button>
                 <button type="button" class="btn" onclick="openSurgeryModal()" style="background-color: #dc3545; color: white; border:none; padding:15px; font-size:1.1em;">🔪 Surgery Slip</button>
-                <button type="button" class="btn" id="save-print-btn" onclick="window.printRx()" style="background-color: #17a2b8; color: white; border:none; padding:15px; font-size:1.1em;">💾 Save & 🖨️ Print Rx (Ctrl+P)</button>
+                <button type="button" class="btn" onclick="window.printRx()" style="background-color: #17a2b8; color: white; border:none; padding:15px; font-size:1.1em;">💾 Save & 🖨️ Print Rx (Ctrl+P)</button>
             </div>
         </form>
     </section>
@@ -213,7 +212,8 @@
         const set = (id, val) => { if(document.getElementById(id)) document.getElementById(id).value = val; };
 
         const dilationStatus = safe(d, 'plan.dilation');
-        if(dilationStatus && dilationStatus !== 'None' && dilationStatus !== 'Do not dilate') { document.getElementById('dilation-alert').classList.remove('hidden'); } else { document.getElementById('dilation-alert').classList.add('hidden'); }
+        // FIX: Strict check for 'Dilate' to prevent false positive
+        if(dilationStatus === 'Dilate') { document.getElementById('dilation-alert').classList.remove('hidden'); } else { document.getElementById('dilation-alert').classList.add('hidden'); }
 
         set('ed_cc', safe(d, 'history.complaint')); set('ed_oh', safe(d, 'history.ocular_hx'));
         let sys = safe(d, 'history.systemic'); if(safe(d, 'history.allergies')) sys += " / " + safe(d, 'history.allergies'); set('ed_sys', sys);
@@ -246,60 +246,17 @@
             const selected = new Date(fuDate); const today = new Date(); today.setHours(0,0,0,0);
             if(selected <= today) { if(!silent) showToast("Error: Follow-up date must be in the future.", 'error'); return; }
         }
-        
-        const meds = []; 
-        document.querySelectorAll('#med-table tbody tr').forEach(tr => { 
-            const name = tr.querySelector('.med-name').value; 
-            if(name) meds.push({ 
-                eye: tr.querySelector('.med-eye').value, 
-                name, 
-                dose: tr.querySelector('.med-dose').value, 
-                freq: tr.querySelector('.med-freq').value, 
-                duration: tr.querySelector('.med-dur').value 
-            }); 
-        });
-
+        const meds = []; document.querySelectorAll('#med-table tbody tr').forEach(tr => { const name = tr.querySelector('.med-name').value; if(name) meds.push({ eye: tr.querySelector('.med-eye').value, name, dose: tr.querySelector('.med-dose').value, freq: tr.querySelector('.med-freq').value, duration: tr.querySelector('.med-dur').value }); });
         let updatedOpto = currentVisit.optoData || {};
         const set = (obj, path, val) => { const k = path.split('.'); let t = obj; k.slice(0,-1).forEach(key=>{ if(!t[key])t[key]={}; t=t[key]; }); t[k.pop()] = val; };
-        
         const ids = ['ed_cc','ed_oh','ed_sys','ed_pgp_sph_od','ed_pgp_cyl_od','ed_pgp_ax_od','ed_pgp_add_od','ed_pgp_sph_os','ed_pgp_cyl_os','ed_pgp_ax_os','ed_pgp_add_os','ed_ext_od','ed_ext_os','ed_va_od','ed_va_os','ed_ph_od','ed_ph_os','ed_va_near_od','ed_va_near_os','ed_rx_sph_od','ed_rx_cyl_od','ed_rx_ax_od','ed_rx_add_od','ed_rx_va_od','ed_rx_sph_os','ed_rx_cyl_os','ed_rx_ax_os','ed_rx_add_os','ed_rx_va_os','ed_sl_lids_od','ed_sl_conj_od','ed_sl_corn_od','ed_sl_ac_od','ed_sl_pupil_od','ed_sl_lens_od','ed_iop_od','ed_sl_lids_os','ed_sl_conj_os','ed_sl_corn_os','ed_sl_ac_os','ed_sl_pupil_os','ed_sl_lens_os','ed_iop_os','ed_sl_remarks'];
         const paths = ['history.complaint','history.ocular_hx','history.systemic','pgp.od.sph','pgp.od.cyl','pgp.od.ax','pgp.od.add','pgp.os.sph','pgp.os.cyl','pgp.os.ax','pgp.os.add','external.od.ext','external.os.ext','va.od.dist','va.os.dist','va.od.ph','va.os.ph','va.od.near','va.os.near','refraction.od.sph','refraction.od.cyl','refraction.od.ax','refraction.od.add','refraction.od.va','refraction.os.sph','refraction.os.cyl','refraction.os.ax','refraction.os.add','refraction.os.va','slitlamp.od.lids','slitlamp.od.conj','slitlamp.od.corn','slitlamp.od.ac','slitlamp.od.pupil','slitlamp.lens_od','slitlamp.iop_od','slitlamp.os.lids','slitlamp.os.conj','slitlamp.os.corn','slitlamp.os.ac','slitlamp.os.pupil','slitlamp.lens_os','slitlamp.iop_os','slitlamp.remarks'];
         ids.forEach((id, i) => set(updatedOpto, paths[i], document.getElementById(id).value));
         
-        // Prevent duplication
-        if(updatedOpto.external) { 
-            if(updatedOpto.external.od) { updatedOpto.external.od.eom = ""; updatedOpto.external.od.ct_dist = ""; } 
-            if(updatedOpto.external.os) { updatedOpto.external.os.eom = ""; updatedOpto.external.os.ct_dist = ""; } 
-        }
-        if(updatedOpto.va) { 
-            if(updatedOpto.va.od) updatedOpto.va.od.rx = ""; 
-            if(updatedOpto.va.os) updatedOpto.va.os.rx = ""; 
-        }
+        if(updatedOpto.external) { if(updatedOpto.external.od) { updatedOpto.external.od.eom = ""; updatedOpto.external.od.ct_dist = ""; } if(updatedOpto.external.os) { updatedOpto.external.os.eom = ""; updatedOpto.external.os.ct_dist = ""; } }
+        if(updatedOpto.va) { if(updatedOpto.va.od) updatedOpto.va.od.rx = ""; if(updatedOpto.va.os) updatedOpto.va.os.rx = ""; }
 
-        const dataToSave = { 
-            optoData: updatedOpto, 
-            doctorData: { 
-                diagnosis: document.getElementById('diagnosis').value, 
-                advice: document.getElementById('advice').value, 
-                followUp: document.getElementById('follow_up_date').value, 
-                meds 
-            }, 
-            status: "Completed",
-            modifiedAt: new Date().toISOString()
-        };
-
-        if(!navigator.onLine) {
-            pendingSaves.push({ id: currentVisit.firebaseId, data: dataToSave });
-            if(!silent) showToast("Saved Locally (Offline)", 'warning');
-            return;
-        }
-
-        try { 
-            await updateDoc(doc(db, "visits", currentVisit.firebaseId), dataToSave); 
-            if(!silent) showToast("Saved to Cloud!", 'success'); 
-        } catch(e) { 
-            if(!silent) showToast("Save Failed: " + e.message, 'error'); 
-        }
+        try { await updateDoc(doc(db, "visits", currentVisit.firebaseId), { optoData: updatedOpto, doctorData: { diagnosis: document.getElementById('diagnosis').value, advice: document.getElementById('advice').value, followUp: document.getElementById('follow_up_date').value, meds }, status: "Completed" }); if(!silent) showToast("Saved to Cloud!", 'success'); } catch(e) { if(!silent) showToast("Save Failed: " + e.message, 'error'); }
     }
 
     window.sendToInvestigation = async function() { const invName = prompt("Enter Investigation Required:"); if(!invName) return; try { await updateDoc(doc(db, "visits", currentVisit.firebaseId), { status: "Investigation", investigationRequest: invName, investigationReport: "" }); alert("Sent to Optometrist."); window.cancelConsult(); } catch(e) { alert(e.message); } };
@@ -307,13 +264,6 @@
     // --- UPDATED PRINT FUNCTION: Uses <base> + logo.png ---
     window.printRx = async function() {
         if(!currentVisit) return;
-        
-        // Simple Validation
-        if(!document.getElementById('diagnosis').value.trim()) {
-            showToast("⚠️ Diagnosis is required before printing.", 'error');
-            return;
-        }
-
         try { await performSave(); } catch(e) { console.error(e); }
         
         const dr = doctorProfiles[loggedInDoctor] || { qual: "", reg: "", desig: "" };
@@ -333,6 +283,7 @@
         win.document.write(content); win.document.close();
     };
 
+    // --- NEW: PRINT GLASSES SLIP ONLY (Small 1/4 Page Slip) ---
     window.printGlassesSlipOnly = function() {
         if(!currentVisit) return;
         const v = (id) => document.getElementById(id) ? document.getElementById(id).value : '';
