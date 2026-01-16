@@ -21,6 +21,12 @@
         .dropdown-item { padding: 10px 15px; cursor: pointer; display: block; width: 100%; text-align: left; border: none; background: none; transition: 0.2s; }
         .dropdown-item:hover { background-color: #f8f9fa; }
         .dropdown-item.danger { color: #dc3545; }
+        /* Appointment Styles */
+        .appt-row { transition: 0.2s; }
+        .appt-row:hover { background-color: #f8f9fa; }
+        .btn-checkin { background: #28a745; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.85em; }
+        .btn-checkin:hover { background: #218838; }
+        .btn-cancel { background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.85em; margin-left: 5px; }
     </style>
 </head>
 <body>
@@ -128,22 +134,44 @@
             </section>
         </div>
 
-        <section class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h3>Today's OPD List</h3>
-                <div style="font-size:0.8em; color:green;">● Live Sync Active</div>
-            </div>
-            <table id="patients-table" style="margin-top:15px; width:100%;">
-                <thead><tr><th>OPD</th><th>PID</th><th>Name</th><th>Doctor</th><th>Status</th><th>Actions</th></tr></thead>
-                <tbody><tr><td colspan="6" class="loading">Connecting...</td></tr></tbody>
-            </table>
-        </section>
+        <div style="display:flex; flex-direction:column; gap:20px;">
+            <section class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h3>Today's OPD List</h3>
+                    <div style="font-size:0.8em; color:green;">● Live Sync Active</div>
+                </div>
+                <table id="patients-table" style="margin-top:15px; width:100%;">
+                    <thead><tr><th>OPD</th><th>PID</th><th>Name</th><th>Doctor</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody><tr><td colspan="6" class="loading">Connecting...</td></tr></tbody>
+                </table>
+            </section>
+
+            <section class="card" style="border-top: 4px solid #6f42c1;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                    <h3>📅 Appointment Schedule</h3>
+                    <input type="date" id="appt_date_picker" onchange="loadAppointments(this.value)" style="padding:5px;">
+                </div>
+                
+                <div style="background:#f8f9fa; padding:10px; border-radius:6px; margin-bottom:10px; display:flex; gap:10px; align-items:center;">
+                    <input id="appt_new_name" placeholder="Patient Name" style="flex:2;">
+                    <input id="appt_new_phone" placeholder="Phone" style="flex:1;">
+                    <button class="btn small info" onclick="bookManualAppointment()">+ Book</button>
+                </div>
+
+                <div style="max-height:300px; overflow-y:auto;">
+                    <table id="appointments-table" style="width:100%; font-size:0.9em;">
+                        <thead><tr><th>Time/Type</th><th>Patient</th><th>Doctor</th><th>Actions</th></tr></thead>
+                        <tbody><tr><td colspan="4" style="text-align:center; padding:10px; color:#666;">Select a date to view appointments.</td></tr></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
     </div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, updateDoc, doc, onSnapshot, query, where, getDocs, setDoc, getCountFromServer } 
+    import { getFirestore, collection, addDoc, updateDoc, doc, onSnapshot, query, where, getDocs, setDoc, getCountFromServer, getDoc } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = { apiKey: "AIzaSyBne_-4FcG5DjtUDVwdd1K-XDsHjX0JOEo", authDomain: "msn-hospital.firebaseapp.com", projectId: "msn-hospital", storageBucket: "msn-hospital.firebasestorage.app", messagingSenderId: "525072218332", appId: "1:525072218332:web:5940ec924f59db675adc19", measurementId: "G-FXXZ7STWDJ" };
@@ -160,6 +188,11 @@
         const dl = document.getElementById('local-places');
         nagaonPlaces.forEach(p => { const o = document.createElement('option'); o.value = p; dl.appendChild(o); });
         try { const coll = collection(db, "patients"); const snapshot = await getCountFromServer(coll); document.getElementById('stat-total').innerText = snapshot.data().count; } catch (e) {}
+        
+        // Init Appointment Date Picker to Today
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('appt_date_picker').value = today;
+        loadAppointments(today);
     });
 
     // --- KEYBOARD SHORTCUTS ---
@@ -169,6 +202,16 @@
         if (e.key === 'F2') { e.preventDefault(); resetForm(); document.getElementById('name').focus(); }
         if (e.key === 'F5') { e.preventDefault(); if(lastSavedData) printLastSlip(); }
     });
+
+    // --- TOAST ---
+    window.showToast = function(msg, type='info') {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.innerText = msg;
+        toast.style.cssText = `position:fixed; top:20px; right:20px; background:${type==='error'?'#dc3545':'#28a745'}; color:white; padding:10px 20px; border-radius:4px; z-index:10000; animation:slideIn 0.3s ease;`;
+        document.getElementById('toast-container').appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
 
     // --- REALTIME QUEUE & STATS ---
     function getTodayISO() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
@@ -186,7 +229,6 @@
             const d = { ...doc.data(), id: doc.id };
             todayVisits.push(d);
             
-            // Fix 4: Exclude Cancelled from stats
             if(d.status !== 'Cancelled') {
                 stats.total++;
                 if(d.status === 'Waiting') stats.waiting++;
@@ -195,10 +237,8 @@
             }
         });
         
-        // Sort FIFO
         todayVisits.sort((a,b) => (a.timestamp || 0) - (b.timestamp || 0));
         
-        // Update UI Stats
         document.getElementById('stat-today').innerText = stats.total;
         document.getElementById('stats-breakdown').innerHTML = `
             <div class="mini-stat" style="color:#d39e00">Waiting <strong>${stats.waiting}</strong></div>
@@ -237,11 +277,135 @@
         });
     });
 
-    // --- QUICK ACTIONS ---
     window.quickAction = async function(id, status) {
         if(!confirm(`Change status to ${status}?`)) return;
         try { await updateDoc(doc(db, "visits", id), { status: status }); } 
         catch(e) { alert("Error: " + e.message); }
+    };
+
+    // --- APPOINTMENT SYSTEM (RECEPTION POWERED) ---
+    window.loadAppointments = async function(dateStr) {
+        const tbody = document.querySelector('#appointments-table tbody');
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:10px;">Loading...</td></tr>';
+        
+        try {
+            const q = query(collection(db, "appointments"), where("date", "==", dateStr));
+            const snap = await getDocs(q);
+            
+            if (snap.empty) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:10px; color:#666;">No appointments for this date.</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = '';
+            const appts = snap.docs.map(doc => ({...doc.data(), id: doc.id}));
+            
+            appts.sort((a,b) => (a.type === 'Follow-up' ? -1 : 1));
+            
+            appts.forEach(a => {
+                if(a.status === 'Cancelled') return; // Skip cancelled
+                
+                const tr = document.createElement('tr');
+                tr.className = 'appt-row';
+                let typeBadge = a.type === 'Follow-up' ? '<span class="badge" style="background:#17a2b8;">Follow-up</span>' : '<span class="badge" style="background:#6c757d;">New</span>';
+                
+                // Show "Check-in" if not yet arrived
+                let actionBtns = '';
+                if(a.status !== 'Arrived') {
+                    actionBtns = `
+                        <button class="btn-checkin" onclick="checkInPatient('${a.id}', '${a.patientName}', '${a.pid||''}', '${a.phone||''}', '${a.doctor||''}')" title="Mark Arrived & Add to Queue">✅ Arrived</button>
+                        <button class="btn-cancel" onclick="cancelAppointment('${a.id}')" title="Cancel">✕</button>
+                    `;
+                } else {
+                    actionBtns = `<span style="color:green; font-weight:bold;">✔ Checked In</span>`;
+                }
+
+                tr.innerHTML = `
+                    <td>${typeBadge}</td>
+                    <td><strong>${a.patientName}</strong><br><small>${a.phone || '-'}</small></td>
+                    <td>${a.doctor || '-'}</td>
+                    <td>${actionBtns}</td>
+                `;
+                // Click to quick-fill form (preview)
+                tr.onclick = (e) => {
+                    if(e.target.tagName === 'BUTTON') return; // Don't trigger if button clicked
+                    fillForm({ 
+                        name: a.patientName, 
+                        phone: a.phone, 
+                        id: a.pid||"", 
+                        age: "", // Age unknown in simple booking
+                        gender: "" 
+                    });
+                    if(a.doctor) document.getElementById('assigned_doctor').value = a.doctor;
+                };
+                tbody.appendChild(tr);
+            });
+            
+        } catch (e) {
+            console.error("Error loading appointments:", e);
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:red;">Error loading data.</td></tr>';
+        }
+    };
+
+    // 2. Book Manual Appointment
+    window.bookManualAppointment = async function() {
+        const name = document.getElementById('appt_new_name').value;
+        const phone = document.getElementById('appt_new_phone').value;
+        const date = document.getElementById('appt_date_picker').value;
+        
+        if(!name || !date) { showToast("Please enter Name and select Date.", 'error'); return; }
+        
+        try {
+            await addDoc(collection(db, "appointments"), {
+                patientName: name,
+                phone: phone,
+                date: date,
+                type: "Manual",
+                status: "Scheduled",
+                doctor: "Unassigned",
+                createdBy: "Reception",
+                createdAt: new Date().toISOString()
+            });
+            
+            showToast("Appointment Booked!", 'success');
+            document.getElementById('appt_new_name').value = "";
+            document.getElementById('appt_new_phone').value = "";
+            loadAppointments(date);
+        } catch(e) {
+            alert("Error: " + e.message);
+        }
+    };
+
+    // 3. CHECK-IN (The Magic Button)
+    window.checkInPatient = async function(apptId, name, pid, phone, doctor) {
+        if(!confirm(`Check-in ${name} and add to OPD Queue?`)) return;
+        
+        // 1. Auto-fill form
+        document.getElementById('name').value = name;
+        document.getElementById('phone').value = phone;
+        if(pid) {
+            document.getElementById('patient_id').value = pid;
+            // Fetch full details if PID exists
+            loadPatientById(pid);
+        }
+        if(doctor) document.getElementById('assigned_doctor').value = doctor;
+        document.getElementById('visit_type').value = pid ? "Review" : "New Case";
+        
+        // 2. Mark Appointment as Arrived
+        try {
+            await updateDoc(doc(db, "appointments", apptId), { status: "Arrived" });
+            loadAppointments(document.getElementById('appt_date_picker').value); // Refresh list
+            showToast("Patient data loaded. Review and click SAVE.", 'success');
+        } catch(e) { console.error(e); }
+    };
+
+    // 4. Cancel Appointment
+    window.cancelAppointment = async function(id) {
+        if(!confirm("Cancel this appointment?")) return;
+        try {
+            await updateDoc(doc(db, "appointments", id), { status: "Cancelled" });
+            loadAppointments(document.getElementById('appt_date_picker').value);
+        } catch(e) { alert(e.message); }
     };
 
     // --- DUPLICATE CHECK ---
@@ -307,14 +471,34 @@
         } catch (e) { resDiv.innerHTML = '<li style="color:red">Error searching DB</li>'; }
     }
 
+    // Helper to load patient by ID (used in check-in)
+    window.loadPatientById = async function(pid) {
+        try {
+            const d = await getDoc(doc(db, "patients", pid));
+            if(d.exists()) fillForm(d.data());
+        } catch(e) { console.error(e); }
+    }
+
     function fillForm(p) {
-        document.getElementById('patient_id').value = p.id; document.getElementById('name').value = p.name; document.getElementById('age').value = p.age; document.getElementById('dob').value = p.dob || ''; document.getElementById('gender').value = p.gender; document.getElementById('phone').value = p.phone; document.getElementById('address').value = p.address || ''; document.getElementById('guardian').value = p.guardian || ''; document.getElementById('district').value = p.district || 'Nagaon'; document.getElementById('pincode').value = p.pincode || ''; document.getElementById('visit_type').value = "Review"; document.getElementById('fee').value = "300"; 
-        document.getElementById('updateBtn').classList.remove('hidden'); window.checkAge(p.age);
+        document.getElementById('patient_id').value = p.id || ""; 
+        document.getElementById('name').value = p.name || ""; 
+        document.getElementById('age').value = p.age || ""; 
+        document.getElementById('dob').value = p.dob || ''; 
+        document.getElementById('gender').value = p.gender || "Male"; 
+        document.getElementById('phone').value = p.phone || ""; 
+        document.getElementById('address').value = p.address || ''; 
+        document.getElementById('guardian').value = p.guardian || ''; 
+        document.getElementById('district').value = p.district || 'Nagaon'; 
+        document.getElementById('pincode').value = p.pincode || ''; 
+        document.getElementById('visit_type').value = p.id ? "Review" : "New Case";
+        document.getElementById('fee').value = "300"; 
+        
+        if(p.id) document.getElementById('updateBtn').classList.remove('hidden'); 
+        if(p.age) window.checkAge(p.age);
     }
 
     // --- SAVE LOGIC ---
     window.savePatient = async function() {
-        // Fix 2: Safety Check for "Edit Mode" accidental save
         if (!document.getElementById('updateBtn').classList.contains('hidden')) {
             if(!confirm("⚠️ Patient loaded. Create a NEW VISIT for today?\n(Click Cancel to just update patient info)")) return;
         }
@@ -323,14 +507,12 @@
         if(!name || !phone || !doctor) { alert("Please fill Name, Phone, and select a Doctor."); return; }
         if(!/^\d{10}$/.test(phone)) { alert("Phone number must be exactly 10 digits."); return; }
 
-        // Duplicate Check before save (if not explicitly creating repeat visit)
         const isEditMode = document.getElementById('updateBtn').classList.contains('hidden') === false;
         if(!isEditMode) {
             const dup = await checkDuplicate(phone);
             if(dup && !confirm(`⚠️ Patient ${dup.name} already exists with this phone.\n\nCreate duplicate entry anyway?`)) return;
         }
         
-        // Prevent duplicate visit on SAME day
         const pidInput = document.getElementById('patient_id').value;
         if(pidInput && pidInput !== 'New') {
              const alreadyBooked = todayVisits.find(v => v.pid === pidInput && v.status !== 'Cancelled');
@@ -350,10 +532,8 @@
                 await setDoc(doc(db, "patients", finalPid), { id: finalPid, name, age, gender, phone: String(phone), dob, address: document.getElementById('address').value, guardian: document.getElementById('guardian').value, district: document.getElementById('district').value, pincode: document.getElementById('pincode').value, createdAt: new Date().toISOString() });
             }
 
-            // Fix 1: Use Unique Timestamp Token for OPD ID
             const opdId = Date.now().toString().slice(-5);
             
-            // Saving Address for Doctor View
             await addDoc(collection(db, "visits"), {
                 pid: finalPid, patientName: name, age, gender, phone: String(phone),
                 address: document.getElementById('address').value,
@@ -362,7 +542,7 @@
                 type: document.getElementById('visit_type').value, fee: document.getElementById('fee').value, timestamp: Date.now()
             });
 
-            alert("✅ Saved! OPD ID: " + opdId);
+            showToast("✅ Saved! OPD ID: " + opdId, "success");
             lastSavedData = { name, opdId, doctor, pid: finalPid, age, gender }; document.getElementById('printLastBtn').classList.remove('hidden'); document.getElementById('saveBtn').innerText = "Saved ✅";
         } catch(e) { alert("Error: " + e.message); btn.innerText = "💾 Save (Ctrl+S)"; btn.disabled = false; } 
     }
@@ -386,7 +566,6 @@
 
     window.resetForm = function() { document.getElementById('registrationForm').reset(); document.getElementById('patient_id').value = ""; document.getElementById('search-result').innerHTML = ""; document.getElementById('updateBtn').classList.add('hidden'); document.getElementById('printLastBtn').classList.add('hidden'); document.getElementById('saveBtn').innerText = "💾 Save (Ctrl+S)"; document.getElementById('saveBtn').disabled = false; document.getElementById('age-warning-box').className = "warning-box"; document.getElementById('phone').classList.remove('invalid'); document.getElementById('phone-error').style.display='none'; document.getElementById('age').readOnly=false; lastSavedData = null; }
     
-    // Fix 3: Lock age if DOB is set
     window.calculateAge = function(dob) { if(!dob) return; const d = new Date(dob); const diff = Date.now() - d.getTime(); const age = Math.abs(new Date(diff).getUTCFullYear() - 1970); document.getElementById('age').value = age; document.getElementById('age').readOnly = true; window.checkAge(age); }
     window.checkAge = function(age) { const box = document.getElementById('age-warning-box'); if(!age) { box.className="warning-box"; return; } if(age < 12) { box.innerText = "⚠️ Paediatric Patient (Child)"; box.className="warning-box active"; } else if(age >= 60) { box.innerText = "⚠️ Senior Citizen"; box.className="warning-box active"; } else { box.className="warning-box"; } }
 </script>
