@@ -152,10 +152,22 @@
                     <input type="date" id="appt_date_picker" onchange="loadAppointments(this.value)" style="padding:5px;">
                 </div>
                 
-                <div style="background:#f8f9fa; padding:10px; border-radius:6px; margin-bottom:10px; display:flex; gap:10px; align-items:center;">
-                    <input id="appt_new_name" placeholder="Patient Name" style="flex:2;">
-                    <input id="appt_new_phone" placeholder="Phone" style="flex:1;">
-                    <button class="btn small info" onclick="bookManualAppointment()">+ Book</button>
+                <div style="background:#f8f9fa; padding:10px; border-radius:6px; margin-bottom:10px;">
+                    <div style="display:flex; gap:10px; margin-bottom:5px;">
+                        <input id="appt_new_name" placeholder="Patient Name" style="flex:2;">
+                        <input id="appt_new_phone" placeholder="Phone" style="flex:1;">
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <select id="appt_new_doc" style="flex:2;">
+                            <option value="">-- Select Doctor --</option>
+                            <option value="Dr. Jayanta Boroowa">Dr. Jayanta Boroowa</option>
+                            <option value="Dr. Pratibha Chauhan Paul">Dr. Pratibha Chauhan Paul</option>
+                            <option value="Dr. Nilutpal Borah">Dr. Nilutpal Borah</option>
+                            <option value="Dr. Nilakshi Baruah">Dr. Nilakshi Baruah</option>
+                            <option value="Dr. Sanjay Kr Buragohain">Dr. Sanjay Kr Buragohain</option>
+                        </select>
+                        <button class="btn small info" onclick="bookManualAppointment()" style="flex:1;">+ Book</button>
+                    </div>
                 </div>
 
                 <div style="max-height:300px; overflow-y:auto;">
@@ -303,13 +315,12 @@
             appts.sort((a,b) => (a.type === 'Follow-up' ? -1 : 1));
             
             appts.forEach(a => {
-                if(a.status === 'Cancelled') return; // Skip cancelled
+                if(a.status === 'Cancelled') return; 
                 
                 const tr = document.createElement('tr');
                 tr.className = 'appt-row';
                 let typeBadge = a.type === 'Follow-up' ? '<span class="badge" style="background:#17a2b8;">Follow-up</span>' : '<span class="badge" style="background:#6c757d;">New</span>';
                 
-                // Show "Check-in" if not yet arrived
                 let actionBtns = '';
                 if(a.status !== 'Arrived') {
                     actionBtns = `
@@ -326,14 +337,13 @@
                     <td>${a.doctor || '-'}</td>
                     <td>${actionBtns}</td>
                 `;
-                // Click to quick-fill form (preview)
                 tr.onclick = (e) => {
-                    if(e.target.tagName === 'BUTTON') return; // Don't trigger if button clicked
+                    if(e.target.tagName === 'BUTTON') return; 
                     fillForm({ 
                         name: a.patientName, 
                         phone: a.phone, 
                         id: a.pid||"", 
-                        age: "", // Age unknown in simple booking
+                        age: "", 
                         gender: "" 
                     });
                     if(a.doctor) document.getElementById('assigned_doctor').value = a.doctor;
@@ -347,11 +357,12 @@
         }
     };
 
-    // 2. Book Manual Appointment
+    // 2. Book Manual Appointment (WITH DOCTOR)
     window.bookManualAppointment = async function() {
         const name = document.getElementById('appt_new_name').value;
         const phone = document.getElementById('appt_new_phone').value;
         const date = document.getElementById('appt_date_picker').value;
+        const docName = document.getElementById('appt_new_doc').value;
         
         if(!name || !date) { showToast("Please enter Name and select Date.", 'error'); return; }
         
@@ -362,7 +373,7 @@
                 date: date,
                 type: "Manual",
                 status: "Scheduled",
-                doctor: "Unassigned",
+                doctor: docName || "Unassigned",
                 createdBy: "Reception",
                 createdAt: new Date().toISOString()
             });
@@ -370,6 +381,7 @@
             showToast("Appointment Booked!", 'success');
             document.getElementById('appt_new_name').value = "";
             document.getElementById('appt_new_phone').value = "";
+            document.getElementById('appt_new_doc').value = "";
             loadAppointments(date);
         } catch(e) {
             alert("Error: " + e.message);
@@ -380,21 +392,18 @@
     window.checkInPatient = async function(apptId, name, pid, phone, doctor) {
         if(!confirm(`Check-in ${name} and add to OPD Queue?`)) return;
         
-        // 1. Auto-fill form
         document.getElementById('name').value = name;
         document.getElementById('phone').value = phone;
         if(pid) {
             document.getElementById('patient_id').value = pid;
-            // Fetch full details if PID exists
             loadPatientById(pid);
         }
         if(doctor) document.getElementById('assigned_doctor').value = doctor;
         document.getElementById('visit_type').value = pid ? "Review" : "New Case";
         
-        // 2. Mark Appointment as Arrived
         try {
             await updateDoc(doc(db, "appointments", apptId), { status: "Arrived" });
-            loadAppointments(document.getElementById('appt_date_picker').value); // Refresh list
+            loadAppointments(document.getElementById('appt_date_picker').value); 
             showToast("Patient data loaded. Review and click SAVE.", 'success');
         } catch(e) { console.error(e); }
     };
@@ -462,7 +471,6 @@
                     </div>`;
                 li.onclick = () => { 
                     fillForm(p); 
-                    // Highlight logic
                     document.querySelectorAll('#search-result li').forEach(l => l.classList.remove('selected'));
                     li.classList.add('selected');
                 };
