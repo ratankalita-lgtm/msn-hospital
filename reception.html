@@ -471,6 +471,7 @@
                     </div>`;
                 li.onclick = () => { 
                     fillForm(p); 
+                    // Highlight logic
                     document.querySelectorAll('#search-result li').forEach(l => l.classList.remove('selected'));
                     li.classList.add('selected');
                 };
@@ -535,8 +536,23 @@
             const age = document.getElementById('age').value; const gender = document.getElementById('gender').value; const dob = document.getElementById('dob').value;
             const isNew = !pidInput || pidInput === 'New' || pidInput === ''; let finalPid = pidInput;
             
-            if(isNew) {
-                const yr = new Date().getFullYear().toString().substr(-2); const rnd = Math.floor(1000 + Math.random() * 9000); finalPid = `P-${yr}${rnd}`; 
+            // FIX: Safe PID Generation Loop (Resolves Conflict Risk)
+            if (isNew) {
+                const yr = new Date().getFullYear().toString().substr(-2);
+                let isUnique = false;
+                
+                while (!isUnique) {
+                    const rnd = Math.floor(1000 + Math.random() * 9000);
+                    finalPid = `P-${yr}${rnd}`;
+                    
+                    // Verify uniqueness in Database
+                    const docRef = doc(db, "patients", finalPid);
+                    const docSnap = await getDoc(docRef);
+                    if (!docSnap.exists()) {
+                        isUnique = true;
+                    }
+                }
+                
                 await setDoc(doc(db, "patients", finalPid), { id: finalPid, name, age, gender, phone: String(phone), dob, address: document.getElementById('address').value, guardian: document.getElementById('guardian').value, district: document.getElementById('district').value, pincode: document.getElementById('pincode').value, createdAt: new Date().toISOString() });
             }
 
