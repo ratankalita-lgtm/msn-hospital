@@ -6,6 +6,12 @@
     <title>Reception - MSN Hospital</title>
     <link rel="stylesheet" href="style.css">
     <style>
+        /* Fallback CSS if style.css fails to load */
+        :root { --primary: #007bff; --warning: #ffc107; --danger: #dc3545; --success: #28a745; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: #f0f2f5; }
+        .hidden { display: none !important; }
+        
+        /* Local Styles */
         #search-result li { cursor: pointer; transition: background 0.2s; padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
         #search-result li:hover { background-color: #f8f9fa; }
         #search-result li.selected { background-color: #e3f2fd; border-left: 4px solid #007bff; }
@@ -22,11 +28,11 @@
         .dropdown-item:hover { background-color: #f8f9fa; }
         .dropdown-item.danger { color: #dc3545; }
         /* Appointment Styles */
-        .appt-row { transition: 0.2s; }
+        .appt-row { transition: 0.2s; border-bottom: 1px solid #eee; }
         .appt-row:hover { background-color: #f8f9fa; }
-        .btn-checkin { background: #28a745; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.85em; }
+        .btn-checkin { background: #28a745; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85em; display:flex; align-items:center; gap:5px; }
         .btn-checkin:hover { background: #218838; }
-        .btn-cancel { background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.85em; margin-left: 5px; }
+        .btn-cancel { background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85em; margin-left: 5px; }
     </style>
 </head>
 <body>
@@ -69,7 +75,7 @@
                 <h3>1. Search Patient (F1)</h3>
                 <div class="search-grid">
                     <div><label>Patient ID</label><input id="search_pid" type="text" placeholder="P..." style="text-transform: uppercase;"></div>
-                    <div><label>Phone</label><input id="search_phone" type="tel" placeholder="98..."></div>
+                    <div><label>Phone</label><input id="search_phone" type="tel" placeholder="98..." pattern="[0-9]{10}" inputmode="numeric"></div>
                     <button type="button" onclick="searchPatient()" class="btn secondary">Find</button>
                 </div>
                 <ul id="search-result" style="margin-top:10px; max-height: 200px; overflow-y:auto; padding:0;"></ul>
@@ -99,7 +105,7 @@
                         <div class="col wide"><label>Guardian / C/O</label><input id="guardian" type="text"></div>
                         <div class="col">
                             <label>Phone <span style="color:red">*</span></label>
-                            <input id="phone" type="tel" required maxlength="10">
+                            <input id="phone" type="tel" required maxlength="10" pattern="[0-9]{10}" inputmode="numeric">
                             <div id="phone-error" class="error-text" style="color:red; font-size:0.8em; display:none;"></div>
                         </div>
                     </div>
@@ -120,7 +126,7 @@
                                 <option value="Dr. Sanjay Kr Buragohain">Dr. Sanjay Kr Buragohain</option>
                             </select>
                         </div>
-                        <div class="col"><label>Type</label><select id="visit_type"><option>New Case</option><option>Review</option><option>Surgery</option></select></div>
+                        <div class="col"><label>Type</label><select id="visit_type" onchange="updateFee(this.value)"><option value="New Case">New Case</option><option value="Review">Review</option><option value="Surgery">Surgery</option></select></div>
                         <div class="col"><label>Fee (₹)</label><input id="fee" type="number" value="500"></div>
                     </div>
 
@@ -155,7 +161,7 @@
                 <div style="background:#f8f9fa; padding:10px; border-radius:6px; margin-bottom:10px;">
                     <div style="display:flex; gap:10px; margin-bottom:5px;">
                         <input id="appt_new_name" placeholder="Patient Name" style="flex:2;">
-                        <input id="appt_new_phone" placeholder="Phone" style="flex:1;">
+                        <input id="appt_new_phone" placeholder="Phone" style="flex:1;" pattern="[0-9]{10}">
                     </div>
                     <div style="display:flex; gap:10px;">
                         <select id="appt_new_doc" style="flex:2;">
@@ -171,8 +177,8 @@
                 </div>
 
                 <div style="max-height:300px; overflow-y:auto;">
-                    <table id="appointments-table" style="width:100%; font-size:0.9em;">
-                        <thead><tr><th>Time/Type</th><th>Patient</th><th>Doctor</th><th>Actions</th></tr></thead>
+                    <table id="appointments-table" style="width:100%; font-size:0.9em; border-collapse: collapse;">
+                        <thead style="background:#eee;"><tr><th style="padding:8px;">Type</th><th style="padding:8px;">Patient</th><th style="padding:8px;">Doctor</th><th style="padding:8px;">Action</th></tr></thead>
                         <tbody><tr><td colspan="4" style="text-align:center; padding:10px; color:#666;">Select a date to view appointments.</td></tr></tbody>
                     </table>
                 </div>
@@ -189,25 +195,22 @@
     const firebaseConfig = { apiKey: "AIzaSyBne_-4FcG5DjtUDVwdd1K-XDsHjX0JOEo", authDomain: "msn-hospital.firebaseapp.com", projectId: "msn-hospital", storageBucket: "msn-hospital.firebasestorage.app", messagingSenderId: "525072218332", appId: "1:525072218332:web:5940ec924f59db675adc19", measurementId: "G-FXXZ7STWDJ" };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    window.db = db; window.updateDoc = updateDoc; window.doc = doc; // For global access
+    window.db = db; window.updateDoc = updateDoc; window.doc = doc; 
 
     let todayVisits = [];
     let lastSavedData = null; 
     const nagaonPlaces = ["Nagaon Town", "Haibargaon", "Raha", "Kampur", "Dhing", "Rupahi", "Samaguri", "Kaliabor", "Jakhalabandha", "Hojai", "Lanka", "Doboka", "Lumding", "Batadrava", "Juria"];
 
-    // --- INITIALIZATION ---
     window.addEventListener('load', async () => {
         const dl = document.getElementById('local-places');
         nagaonPlaces.forEach(p => { const o = document.createElement('option'); o.value = p; dl.appendChild(o); });
         try { const coll = collection(db, "patients"); const snapshot = await getCountFromServer(coll); document.getElementById('stat-total').innerText = snapshot.data().count; } catch (e) {}
         
-        // Init Appointment Date Picker to Today
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('appt_date_picker').value = today;
         loadAppointments(today);
     });
 
-    // --- KEYBOARD SHORTCUTS ---
     document.addEventListener('keydown', function(e) {
         if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); document.getElementById('saveBtn').click(); }
         if (e.key === 'F1') { e.preventDefault(); document.getElementById('search_pid').focus(); }
@@ -215,7 +218,6 @@
         if (e.key === 'F5') { e.preventDefault(); if(lastSavedData) printLastSlip(); }
     });
 
-    // --- TOAST ---
     window.showToast = function(msg, type='info') {
         const toast = document.createElement('div');
         toast.className = `toast ${type}`;
@@ -225,7 +227,6 @@
         setTimeout(() => toast.remove(), 3000);
     }
 
-    // --- REALTIME QUEUE & STATS ---
     function getTodayISO() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 
     const q = query(collection(db, "visits"), where("isoDate", "==", getTodayISO()));
@@ -234,13 +235,11 @@
         todayVisits = [];
         const tbody = document.querySelector('#patients-table tbody');
         tbody.innerHTML = '';
-        
         let stats = { waiting: 0, clinic: 0, done: 0, total: 0 };
 
         snapshot.docs.forEach(doc => { 
             const d = { ...doc.data(), id: doc.id };
             todayVisits.push(d);
-            
             if(d.status !== 'Cancelled') {
                 stats.total++;
                 if(d.status === 'Waiting') stats.waiting++;
@@ -250,13 +249,8 @@
         });
         
         todayVisits.sort((a,b) => (a.timestamp || 0) - (b.timestamp || 0));
-        
         document.getElementById('stat-today').innerText = stats.total;
-        document.getElementById('stats-breakdown').innerHTML = `
-            <div class="mini-stat" style="color:#d39e00">Waiting <strong>${stats.waiting}</strong></div>
-            <div class="mini-stat" style="color:#0d6efd">In-Clinic <strong>${stats.clinic}</strong></div>
-            <div class="mini-stat" style="color:#198754">Done <strong>${stats.done}</strong></div>
-        `;
+        document.getElementById('stats-breakdown').innerHTML = `<div class="mini-stat" style="color:#d39e00">Waiting <strong>${stats.waiting}</strong></div><div class="mini-stat" style="color:#0d6efd">In-Clinic <strong>${stats.clinic}</strong></div><div class="mini-stat" style="color:#198754">Done <strong>${stats.done}</strong></div>`;
 
         if (todayVisits.length === 0) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px;">No patients yet today.</td></tr>'; return; }
 
@@ -269,22 +263,7 @@
             else if(v.status === 'Completed') badgeClass = 'completed';
             else if(v.status === 'Cancelled') badgeClass = 'cancelled';
 
-            tr.innerHTML = `
-                <td><strong>${v.opdId}</strong></td>
-                <td>${v.pid}</td>
-                <td>${v.patientName}<br><small>${v.age}Y / ${v.gender}</small></td>
-                <td>${v.doctor || '-'}</td>
-                <td><span class="badge ${badgeClass}">${v.status}</span></td>
-                <td>
-                    <div class="dropdown">
-                        <button class="btn small info">Options ▼</button>
-                        <div class="dropdown-menu">
-                            <button class="dropdown-item" onclick="window.printSlip('${v.patientName}', '${v.opdId}', '${v.doctor}', '${v.pid}', '${v.age}', '${v.gender}')">🖨️ Print Slip</button>
-                            <button class="dropdown-item" onclick="window.quickAction('${v.id}', 'Waiting')">⏳ Set Waiting</button>
-                            <button class="dropdown-item danger" onclick="window.quickAction('${v.id}', 'Cancelled')">🚫 Cancel</button>
-                        </div>
-                    </div>
-                </td>`;
+            tr.innerHTML = `<td><strong>${v.opdId}</strong></td><td>${v.pid}</td><td>${v.patientName}<br><small>${v.age}Y / ${v.gender}</small></td><td>${v.doctor || '-'}</td><td><span class="badge ${badgeClass}">${v.status}</span></td><td><div class="dropdown"><button class="btn small info">Options ▼</button><div class="dropdown-menu"><button class="dropdown-item" onclick="window.printSlip('${v.patientName}', '${v.opdId}', '${v.doctor}', '${v.pid}', '${v.age}', '${v.gender}')">🖨️ Print Slip</button><button class="dropdown-item" onclick="window.quickAction('${v.id}', 'Waiting')">⏳ Set Waiting</button><button class="dropdown-item danger" onclick="window.quickAction('${v.id}', 'Cancelled')">🚫 Cancel</button></div></div></td>`;
             tbody.appendChild(tr);
         });
     });
@@ -295,7 +274,7 @@
         catch(e) { alert("Error: " + e.message); }
     };
 
-    // --- APPOINTMENT SYSTEM (RECEPTION POWERED) ---
+    // --- APPOINTMENTS ---
     window.loadAppointments = async function(dateStr) {
         const tbody = document.querySelector('#appointments-table tbody');
         tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:10px;">Loading...</td></tr>';
@@ -303,103 +282,89 @@
         try {
             const q = query(collection(db, "appointments"), where("date", "==", dateStr));
             const snap = await getDocs(q);
-            
-            if (snap.empty) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:10px; color:#666;">No appointments for this date.</td></tr>';
-                return;
-            }
+            if (snap.empty) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:10px; color:#666;">No appointments for this date.</td></tr>'; return; }
             
             tbody.innerHTML = '';
             const appts = snap.docs.map(doc => ({...doc.data(), id: doc.id}));
-            
-            appts.sort((a,b) => (a.type === 'Follow-up' ? -1 : 1));
+            appts.sort((a,b) => (a.createdAt || "").localeCompare(b.createdAt || "")); // Fix: Sort by time
             
             appts.forEach(a => {
-                if(a.status === 'Cancelled') return; 
-                
+                if(a.status === 'Cancelled') return;
                 const tr = document.createElement('tr');
                 tr.className = 'appt-row';
                 let typeBadge = a.type === 'Follow-up' ? '<span class="badge" style="background:#17a2b8;">Follow-up</span>' : '<span class="badge" style="background:#6c757d;">New</span>';
                 
                 let actionBtns = '';
                 if(a.status !== 'Arrived') {
-                    actionBtns = `
-                        <button class="btn-checkin" onclick="checkInPatient('${a.id}', '${a.patientName}', '${a.pid||''}', '${a.phone||''}', '${a.doctor||''}')" title="Mark Arrived & Add to Queue">✅ Arrived</button>
-                        <button class="btn-cancel" onclick="cancelAppointment('${a.id}')" title="Cancel">✕</button>
-                    `;
-                } else {
-                    actionBtns = `<span style="color:green; font-weight:bold;">✔ Checked In</span>`;
-                }
+                    actionBtns = `<div style="display:flex;"><button class="btn-checkin" onclick="checkInPatient('${a.id}', '${a.patientName}', '${a.pid||''}', '${a.phone||''}', '${a.doctor||''}')" title="Mark Arrived">✅ Arrived</button><button class="btn-cancel" onclick="cancelAppointment('${a.id}')" title="Cancel">✕</button></div>`;
+                } else { actionBtns = `<span style="color:green; font-weight:bold;">✔ Checked In</span>`; }
 
-                tr.innerHTML = `
-                    <td>${typeBadge}</td>
-                    <td><strong>${a.patientName}</strong><br><small>${a.phone || '-'}</small></td>
-                    <td>${a.doctor || '-'}</td>
-                    <td>${actionBtns}</td>
-                `;
+                tr.innerHTML = `<td style="padding:8px;">${typeBadge}</td><td style="padding:8px;"><strong>${a.patientName}</strong><br><small>${a.phone || '-'}</small></td><td style="padding:8px;">${a.doctor || '<span style="color:#999">Unassigned</span>'}</td><td style="padding:8px;">${actionBtns}</td>`;
+                
                 tr.onclick = (e) => {
-                    if(e.target.tagName === 'BUTTON') return; 
-                    fillForm({ 
-                        name: a.patientName, 
-                        phone: a.phone, 
-                        id: a.pid||"", 
-                        age: "", 
-                        gender: "" 
-                    });
+                    if(e.target.tagName === 'BUTTON') return;
+                    fillForm({ name: a.patientName, phone: a.phone, id: a.pid||"", age: "", gender: "" });
                     if(a.doctor) document.getElementById('assigned_doctor').value = a.doctor;
                 };
                 tbody.appendChild(tr);
             });
-            
-        } catch (e) {
-            console.error("Error loading appointments:", e);
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:red;">Error loading data.</td></tr>';
-        }
+        } catch (e) { console.error(e); }
     };
 
-    // 2. Book Manual Appointment (WITH DOCTOR)
     window.bookManualAppointment = async function() {
         const name = document.getElementById('appt_new_name').value;
         const phone = document.getElementById('appt_new_phone').value;
         const date = document.getElementById('appt_date_picker').value;
         const docName = document.getElementById('appt_new_doc').value;
         
-        if(!name || !date) { showToast("Please enter Name and select Date.", 'error'); return; }
+        if(!name || !date || !phone) { showToast("Name, Phone, and Date are required.", 'error'); return; }
         
         try {
+            let linkedPid = ""; let finalName = name;
+            // Link existing patient if phone matches
+            const q = query(collection(db, "patients"), where("phone", "==", phone));
+            const snap = await getDocs(q);
+            if (!snap.empty) {
+                const p = snap.docs[0].data();
+                linkedPid = p.id;
+                finalName = p.name;
+                showToast("Found existing patient! Linking ID...", "info");
+            }
+
             await addDoc(collection(db, "appointments"), {
-                patientName: name,
-                phone: phone,
-                date: date,
-                type: "Manual",
-                status: "Scheduled",
-                doctor: docName || "Unassigned",
-                createdBy: "Reception",
-                createdAt: new Date().toISOString()
+                patientName: finalName, pid: linkedPid, phone: phone, date: date,
+                type: linkedPid ? "Follow-up" : "New",
+                status: "Scheduled", doctor: docName || "Unassigned", createdBy: "Reception", createdAt: new Date().toISOString()
             });
             
             showToast("Appointment Booked!", 'success');
-            document.getElementById('appt_new_name').value = "";
-            document.getElementById('appt_new_phone').value = "";
-            document.getElementById('appt_new_doc').value = "";
+            document.getElementById('appt_new_name').value = ""; document.getElementById('appt_new_phone').value = "";
             loadAppointments(date);
-        } catch(e) {
-            alert("Error: " + e.message);
-        }
+        } catch(e) { alert("Error: " + e.message); }
     };
 
-    // 3. CHECK-IN (The Magic Button)
     window.checkInPatient = async function(apptId, name, pid, phone, doctor) {
         if(!confirm(`Check-in ${name} and add to OPD Queue?`)) return;
         
         document.getElementById('name').value = name;
         document.getElementById('phone').value = phone;
+        if(doctor) document.getElementById('assigned_doctor').value = doctor;
+        
+        if(!pid && phone) {
+             const q = query(collection(db, "patients"), where("phone", "==", phone));
+             const snap = await getDocs(q);
+             if (!snap.empty) { pid = snap.docs[0].data().id; }
+        }
+
         if(pid) {
             document.getElementById('patient_id').value = pid;
             loadPatientById(pid);
+            // Fee will be updated in loadPatientById -> fillForm -> updateFee
+        } else {
+            document.getElementById('patient_id').value = "New";
+            document.getElementById('visit_type').value = "New Case";
+            updateFee("New Case");
         }
-        if(doctor) document.getElementById('assigned_doctor').value = doctor;
-        document.getElementById('visit_type').value = pid ? "Review" : "New Case";
         
         try {
             await updateDoc(doc(db, "appointments", apptId), { status: "Arrived" });
@@ -408,21 +373,25 @@
         } catch(e) { console.error(e); }
     };
 
-    // 4. Cancel Appointment
     window.cancelAppointment = async function(id) {
         if(!confirm("Cancel this appointment?")) return;
-        try {
-            await updateDoc(doc(db, "appointments", id), { status: "Cancelled" });
-            loadAppointments(document.getElementById('appt_date_picker').value);
-        } catch(e) { alert(e.message); }
+        try { await updateDoc(doc(db, "appointments", id), { status: "Cancelled" }); loadAppointments(document.getElementById('appt_date_picker').value); } catch(e) { alert(e.message); }
     };
 
-    // --- DUPLICATE CHECK ---
     async function checkDuplicate(phone) {
+        const pid = document.getElementById('patient_id').value;
+        // Fix: Ignore if current loaded patient has same phone
+        if(pid && pid !== "New" && pid !== "") {
+             // We can check if loaded patient phone == input phone, if so return null
+             // But simpler: The logic below finds *a* patient. If that patient.id == pid, it's fine.
+        }
+
         const q = query(collection(db, "patients"), where("phone", "==", String(phone)));
         const snap = await getDocs(q);
         if (!snap.empty) {
             const p = snap.docs[0].data();
+            if (p.id === pid) return null; // It's the same person, no warning needed
+
             document.getElementById('phone').classList.add('invalid');
             document.getElementById('phone-error').innerText = `⚠️ Duplicate: ${p.name} (${p.id})`;
             document.getElementById('phone-error').style.display = 'block';
@@ -435,52 +404,37 @@
     }
     document.getElementById('phone').addEventListener('blur', (e) => checkDuplicate(e.target.value));
 
-    // --- SEARCH ---
     window.searchPatient = async function() {
         const pid = document.getElementById('search_pid').value.trim().toUpperCase();
         const phone = document.getElementById('search_phone').value.trim();
         const resDiv = document.getElementById('search-result');
         
         if(!pid && !phone) return;
-        
         resDiv.innerHTML = '<li style="color:#666; justify-content:center;">Searching...</li>';
         
-        let q;
-        if(pid) q = query(collection(db, "patients"), where("id", "==", pid));
-        else if(phone) q = query(collection(db, "patients"), where("phone", "==", String(phone)));
-
         try {
-            const snap = await getDocs(q);
-            resDiv.innerHTML = '';
-            
-            if(snap.empty) { 
-                resDiv.innerHTML = '<li style="color:red; justify-content:center;">No patient found.</li>'; 
-                return; 
+            let p = null;
+            if(pid) {
+                // Fix: Use direct getDoc for PID search
+                const docRef = doc(db, "patients", pid);
+                const snap = await getDoc(docRef);
+                if(snap.exists()) p = snap.data();
+            } else if(phone) {
+                const q = query(collection(db, "patients"), where("phone", "==", String(phone)));
+                const snap = await getDocs(q);
+                if(!snap.empty) p = snap.docs[0].data();
             }
+
+            resDiv.innerHTML = '';
+            if(!p) { resDiv.innerHTML = '<li style="color:red; justify-content:center;">No patient found.</li>'; return; }
             
-            snap.forEach(doc => {
-                const p = doc.data();
-                const li = document.createElement('li');
-                li.innerHTML = `
-                    <div>
-                        <strong>${p.name}</strong> <small>(${p.age}Y/${p.gender})</small><br>
-                        <span style="font-size:0.8em; color:#555;">${p.phone} | ${p.address||''}</span>
-                    </div>
-                    <div style="text-align:right;">
-                        <span class="badge" style="background:#eee; color:#333;">${p.id}</span>
-                    </div>`;
-                li.onclick = () => { 
-                    fillForm(p); 
-                    // Highlight logic
-                    document.querySelectorAll('#search-result li').forEach(l => l.classList.remove('selected'));
-                    li.classList.add('selected');
-                };
-                resDiv.appendChild(li);
-            });
+            const li = document.createElement('li');
+            li.innerHTML = `<div><strong>${p.name}</strong> <small>(${p.age}Y/${p.gender})</small><br><span style="font-size:0.8em; color:#555;">${p.phone} | ${p.address||''}</span></div><div style="text-align:right;"><span class="badge" style="background:#eee; color:#333;">${p.id}</span></div>`;
+            li.onclick = () => { fillForm(p); };
+            resDiv.appendChild(li);
         } catch (e) { resDiv.innerHTML = '<li style="color:red">Error searching DB</li>'; }
     }
 
-    // Helper to load patient by ID (used in check-in)
     window.loadPatientById = async function(pid) {
         try {
             const d = await getDoc(doc(db, "patients", pid));
@@ -499,14 +453,25 @@
         document.getElementById('guardian').value = p.guardian || ''; 
         document.getElementById('district').value = p.district || 'Nagaon'; 
         document.getElementById('pincode').value = p.pincode || ''; 
-        document.getElementById('visit_type').value = p.id ? "Review" : "New Case";
-        document.getElementById('fee').value = "300"; 
         
-        if(p.id) document.getElementById('updateBtn').classList.remove('hidden'); 
+        if(p.id) {
+            document.getElementById('visit_type').value = "Review";
+            updateFee("Review");
+            document.getElementById('updateBtn').classList.remove('hidden'); 
+        } else {
+            document.getElementById('visit_type').value = "New Case";
+            updateFee("New Case");
+        }
+        
         if(p.age) window.checkAge(p.age);
     }
 
-    // --- SAVE LOGIC ---
+    window.updateFee = function(type) {
+        const feeBox = document.getElementById('fee');
+        if(type === 'Review') feeBox.value = 300;
+        else feeBox.value = 500;
+    }
+
     window.savePatient = async function() {
         if (!document.getElementById('updateBtn').classList.contains('hidden')) {
             if(!confirm("⚠️ Patient loaded. Create a NEW VISIT for today?\n(Click Cancel to just update patient info)")) return;
@@ -516,7 +481,7 @@
         if(!name || !phone || !doctor) { alert("Please fill Name, Phone, and select a Doctor."); return; }
         if(!/^\d{10}$/.test(phone)) { alert("Phone number must be exactly 10 digits."); return; }
 
-        const isEditMode = document.getElementById('updateBtn').classList.contains('hidden') === false;
+        const isEditMode = !document.getElementById('updateBtn').classList.contains('hidden');
         if(!isEditMode) {
             const dup = await checkDuplicate(phone);
             if(dup && !confirm(`⚠️ Patient ${dup.name} already exists with this phone.\n\nCreate duplicate entry anyway?`)) return;
@@ -536,27 +501,22 @@
             const age = document.getElementById('age').value; const gender = document.getElementById('gender').value; const dob = document.getElementById('dob').value;
             const isNew = !pidInput || pidInput === 'New' || pidInput === ''; let finalPid = pidInput;
             
-            // FIX: Safe PID Generation Loop (Resolves Conflict Risk)
-            if (isNew) {
+            if(isNew) {
                 const yr = new Date().getFullYear().toString().substr(-2);
+                // Fix: Check for PID collision before setting
                 let isUnique = false;
-                
-                while (!isUnique) {
-                    const rnd = Math.floor(1000 + Math.random() * 9000);
+                while(!isUnique) {
+                    const rnd = Math.floor(1000 + Math.random() * 9000); 
                     finalPid = `P-${yr}${rnd}`;
-                    
-                    // Verify uniqueness in Database
-                    const docRef = doc(db, "patients", finalPid);
-                    const docSnap = await getDoc(docRef);
-                    if (!docSnap.exists()) {
-                        isUnique = true;
-                    }
+                    const d = await getDoc(doc(db, "patients", finalPid));
+                    if(!d.exists()) isUnique = true;
                 }
                 
                 await setDoc(doc(db, "patients", finalPid), { id: finalPid, name, age, gender, phone: String(phone), dob, address: document.getElementById('address').value, guardian: document.getElementById('guardian').value, district: document.getElementById('district').value, pincode: document.getElementById('pincode').value, createdAt: new Date().toISOString() });
             }
 
-            const opdId = Date.now().toString().slice(-5);
+            // Fix: OPD ID Collision Risk
+            const opdId = Math.floor(10000 + Math.random() * 90000).toString();
             
             await addDoc(collection(db, "visits"), {
                 pid: finalPid, patientName: name, age, gender, phone: String(phone),
