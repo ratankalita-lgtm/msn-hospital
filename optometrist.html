@@ -6,27 +6,31 @@
     <title>Optometrist - MSN Hospital</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        .hidden { display: none; }
-        .small-input { width: 100%; text-align: center; padding: 5px; border: 1px solid #ccc; border-radius: 4px; }
-        .od-input { border: 1px solid #ff9999; background-color: #fff5f5; color: #d60000; }
-        .od-input:focus { outline: 2px solid #ffcccc; }
-        .os-input { border: 1px solid #99ccff; background-color: #f0f8ff; color: #004085; }
-        .os-input:focus { outline: 2px solid #cce5ff; }
-        .opto-grid { display: grid; grid-template-columns: 150px 1fr 1fr; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
-        .opto-grid.header { font-weight: bold; background-color: #f8f9fa; border-bottom: 2px solid #dee2e6; padding: 10px 5px; }
-        .opto-grid.pgp { grid-template-columns: 100px 1fr 1fr 1fr 1fr; }
-        .opto-grid.refraction { grid-template-columns: 100px 1fr 1fr 1fr 1fr 1fr; }
-        .status-waiting { color: #856404; background-color: #fff3cd; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
-        .status-investigation { color: #fff; background-color: #fd7e14; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; font-weight:bold; }
-        .added-item { display: inline-block; background: #e9ecef; padding: 4px 8px; margin: 4px 4px 4px 0; border-radius: 15px; font-size: 0.9em; border: 1px solid #ced4da; }
-        .remove-x { color: red; margin-left: 6px; cursor: pointer; font-weight: bold; }
+        /* CRITICAL FALLBACK CSS */
+        :root { --primary: #007bff; --danger: #dc3545; --success: #28a745; --warning: #ffc107; --disabled: #e9ecef; }
+        .hidden { display: none !important; }
+        .opto-grid { display: grid; grid-template-columns: 150px 1fr 1fr; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border, #eee); }
+        .opto-grid.pgp { grid-template-columns: 80px 1fr 1fr 1fr 1fr; } 
+        .opto-grid.header { font-weight: bold; background: rgba(0,0,0,0.03); border-bottom: 2px solid var(--border, #ddd); }
         
-        /* VALIDATION STYLES */
-        .invalid-input { border-color: #dc3545 !important; background-color: #fff8f8 !important; }
-        .warning-text { color: #856404; font-size: 0.8em; margin-top: 2px; }
+        .small-input { width: 100%; box-sizing: border-box; padding: 5px; text-align: center; border: 1px solid #ccc; border-radius: 4px; }
+        .od-input { background: var(--od-tint, #fff5f5); border-color: #ffcccc; color: #d60000; }
+        .os-input { background: var(--os-tint, #f0f8ff); border-color: #cce5ff; color: #004085; }
+        .invalid-input { border-color: red !important; background-color: #ffe6e6 !important; }
+        .warning-text { color: #856404; font-size: 0.85em; display: block; margin-top: 4px; }
+        
+        /* Read Only Mode */
+        .read-only-mode input, .read-only-mode textarea, .read-only-mode select { background-color: var(--disabled) !important; color: #666 !important; pointer-events: none; border-color: #ddd !important; }
+        .read-only-banner { background: #fff3cd; color: #856404; padding: 10px; text-align: center; font-weight: bold; border: 1px solid #ffeeba; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+
+        .added-item { display: inline-flex; align-items: center; background: #e9ecef; padding: 4px 10px; margin: 2px; border-radius: 15px; font-size: 0.9em; border:1px solid #ccc; }
+        .remove-x { color: #dc3545; margin-left: 8px; cursor: pointer; font-weight: bold; }
+        .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; }
+        
+        /* VA Chart */
         .va-chart-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; margin-top: 10px; }
-        .va-item { background: #e9ecef; padding: 4px; text-align: center; border-radius: 4px; cursor: pointer; font-size: 0.85em; }
-        .va-item:hover { background: #007bff; color: white; }
+        .va-item { background: rgba(0,0,0,0.05); padding: 5px; text-align: center; cursor: pointer; border-radius: 3px; font-size: 0.85em; }
+        .va-item:hover { background: var(--primary); color: white; }
     </style>
 </head>
 <body>
@@ -34,82 +38,103 @@
 <div class="container">
     <header class="hospital-header">
         <img src="logo.png" alt="Logo" class="hospital-logo" onerror="this.style.display='none'">
-        <div><h2>Optometrist Workstation</h2><p class="text-muted">Clinical Workup & Refraction</p></div>
+        <div>
+            <h2>Optometrist Workstation</h2>
+            <p class="text-muted">Clinical Workup & Refraction</p>
+        </div>
+        <div style="margin-left:auto; display:flex; align-items:center; gap:15px;">
+            <span id="save-status" style="font-size:0.8em; color:gray;"></span>
+            <span id="connection-status" style="font-size:0.8em; color:green;">● Live</span>
+        </div>
     </header>
 
     <section class="card" id="queue-view">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
-            <h3>Patients Waiting</h3>
-            <div style="display:flex; gap:10px; align-items:center;"><span style="font-size:0.8em; color:green;">● Live Sync Active</span><button class="btn ghost small" onclick="location.reload()">Refresh</button></div>
+            <h3>Patients Waiting (Today)</h3>
+            <button class="btn ghost small" onclick="location.reload()">Refresh</button>
         </div>
-        <table id="opto-queue-table"><thead><tr><th>OPD No</th><th>PID</th><th>Name</th><th>Address</th><th>Age/Sex</th><th>Status</th><th>Action</th></tr></thead><tbody><tr><td colspan="7" style="text-align:center; padding:20px;">Connecting...</td></tr></tbody></table>
+        <table id="opto-queue-table"><thead><tr><th>OPD No</th><th>PID</th><th>Name</th><th>Age/Sex</th><th>Status</th><th>Action</th></tr></thead><tbody><tr><td colspan="6" style="text-align:center; padding:20px;">Connecting...</td></tr></tbody></table>
     </section>
 
     <section class="form-container hidden" id="workup-view">
-        <div style="background:#e3f2fd; padding:15px; margin-bottom:20px; border-radius:6px; border-left: 5px solid #007bff; display:flex; justify-content:space-between; align-items:center;">
-            <div><h3 id="p-header" style="margin:0; color:#007bff">Patient Name</h3><p id="p-details" style="margin:5px 0 0 0; color:#555;">PID: - </p></div>
+        <div style="background:rgba(0,123,255,0.1); padding:15px; margin-bottom:20px; border-radius:6px; border-left: 5px solid var(--primary); display:flex; justify-content:space-between; align-items:center;">
+            <div><h3 id="p-header" style="margin:0; color:var(--primary)">Patient Name</h3><p id="p-details" style="margin:5px 0 0 0; color:#555;">PID: - </p></div>
             <button class="btn ghost small" onclick="closeWorkup()">Back to Queue</button>
         </div>
 
-        <div class="card" style="background:#f8f9fa; margin-bottom:20px; padding:15px;">
+        <div id="lock-banner" class="read-only-banner hidden">
+            <span>🔒 Record is Locked (With Doctor)</span>
+            <button class="btn small warning" onclick="unlockForm()">Unlock to Edit</button>
+        </div>
+
+        <div class="card" style="background:rgba(0,0,0,0.02); margin-bottom:20px; padding:15px;">
             <h4 style="margin-top:0;">🧮 Clinical Helper</h4>
-            <div style="display:flex; gap:20px; align-items:center;">
+            <div style="display:flex; gap:20px; align-items:center; flex-wrap: wrap;">
                 <div>
-                    <label>Age-Based Add:</label>
-                    <button class="btn small" onclick="calcAdd()">Calculate for Age</button>
-                    <span id="calc-result" style="font-weight:bold; margin-left:10px; color:#28a745;"></span>
+                    <button class="btn small" type="button" onclick="calcAdd()">Auto-Calculate Add</button>
+                    <span id="calc-result" style="font-weight:bold; margin-left:10px; color:var(--success);"></span>
                 </div>
                 <div style="border-left:1px solid #ccc; padding-left:20px;">
-                    <label>Spherical Equiv:</label>
-                    <input id="se-sph" placeholder="Sph" style="width:50px;"> <input id="se-cyl" placeholder="Cyl" style="width:50px;">
-                    <button class="btn small info" onclick="calcSE()">Calc</button>
+                    <input id="se-sph" placeholder="Sph" style="width:60px; text-align:center;"> 
+                    <input id="se-cyl" placeholder="Cyl" style="width:60px; text-align:center;">
+                    <button class="btn small info" type="button" onclick="calcSE()">Calc SE</button>
                     <span id="se-result" style="font-weight:bold; margin-left:10px;"></span>
                 </div>
             </div>
         </div>
 
-        <div id="investigation-panel" class="hidden" style="border: 2px solid #fd7e14; padding: 15px; border-radius: 6px; margin-bottom: 20px; background: #fff5eb;">
-            <h4 style="margin:0 0 10px 0; color:#fd7e14;">⚠️ Investigation Requested by Doctor</h4>
-            <div style="background:white; padding:10px; border:1px dashed #ccc; margin-bottom:10px;">
+        <div id="investigation-panel" class="hidden" style="border: 2px solid #fd7e14; padding: 15px; border-radius: 6px; margin-bottom: 20px; background: rgba(253,126,20,0.05);">
+            <h4 style="margin:0 0 10px 0; color:#fd7e14;">⚠️ Investigation Requested</h4>
+            <div style="background:var(--white); padding:10px; border:1px dashed #ccc; margin-bottom:10px;">
                 <strong>Request:</strong> <span id="inv-request-text" style="font-size:1.1em;">-</span>
             </div>
-            <label><strong>Enter Results / Report Text:</strong></label>
-            <textarea id="inv-report-input" rows="3" placeholder="Type findings here (e.g. IOP: 18/19, OCT shows...)" style="width:100%; border:1px solid #fd7e14;"></textarea>
-            <button type="button" class="btn" style="margin-top:10px; background-color:#28a745;" onclick="saveInvestigationReport()">✅ Save & Send Report to Doctor</button>
+            <label><strong>Enter Results:</strong></label>
+            <textarea id="inv-report-input" rows="3" class="full-width" placeholder="Type findings here..."></textarea>
+            <button type="button" class="btn" style="margin-top:10px; background-color:#28a745;" onclick="saveInvestigationReport()">✅ Save & Send Report</button>
         </div>
 
         <form id="optoForm">
             <fieldset><legend>Clinical History</legend>
-                <div class="row"><div class="col wide"><label>Chief Complaint</label><textarea id="chief_complaint" rows="2"></textarea></div><div class="col wide"><label>Ocular / Medical History</label><textarea id="ocular_history" rows="2"></textarea></div></div>
-                <div class="row" style="align-items: flex-end;"><div class="col"><label>Systemic Diseases</label><select id="sys_select"><option value="">-- Select --</option><option value="Diabetes (DM)">Diabetes (DM)</option><option value="Hypertension (HTN)">Hypertension (HTN)</option><option value="Cardiac">Cardiac</option><option value="Asthma">Asthma</option><option value="Thyroid">Thyroid</option><option value="Other">Other</option></select></div><div class="col narrow"><label>Duration</label><input id="sys_duration" type="text" placeholder="e.g. 5 yrs"></div><div class="col narrow"><button type="button" class="btn small" onclick="addSystemicDisease()">+ Add</button></div><div class="col"><label>Allergies</label><input id="allergies" type="text"></div></div>
-                <div id="sys_disease_list" style="margin-top:5px; margin-bottom:10px;"></div>
+                <div class="row"><div class="col wide"><label>Chief Complaint</label><textarea id="chief_complaint" rows="2"></textarea></div><div class="col wide"><label>Ocular History</label><textarea id="ocular_history" rows="2"></textarea></div></div>
+                <div class="row" style="align-items: flex-end;">
+                    <div class="col"><label>Systemic Diseases</label>
+                        <select id="sys_select">
+                            <option value="">-- Add Disease --</option>
+                            <option value="Diabetes (DM)">Diabetes (DM)</option>
+                            <option value="Hypertension (HTN)">Hypertension (HTN)</option>
+                            <option value="Cardiac">Cardiac</option>
+                            <option value="Asthma">Asthma</option>
+                            <option value="Thyroid">Thyroid</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="col narrow"><label>Duration</label><input id="sys_duration" type="text" placeholder="e.g. 5 yrs"></div>
+                    <div class="col narrow"><button type="button" class="btn small" onclick="addSystemicDisease()">+ Add</button></div>
+                    <div class="col"><label>Allergies</label><input id="allergies" type="text"></div>
+                </div>
+                <div id="sys_disease_list" style="margin-top:5px; min-height:20px;"></div>
             </fieldset>
 
             <fieldset><legend>Previous Glasses (PGP)</legend>
                 <div class="opto-grid pgp header"><div>Eye</div><div>Sph</div><div>Cyl</div><div>Axis</div><div>Add</div></div>
                 <div class="opto-grid pgp">
-                    <div><strong style="color:#d60000">Right (OD)</strong></div>
-                    <input id="pgp_sph_od" class="small-input od-input">
-                    <input id="pgp_cyl_od" class="small-input od-input">
-                    <input id="pgp_ax_od" type="number" min="0" max="180" class="small-input od-input">
-                    <input id="pgp_add_od" class="small-input od-input">
+                    <div><strong style="color:#d60000">OD</strong></div>
+                    <input id="pgp_sph_od" class="small-input od-input"><input id="pgp_cyl_od" class="small-input od-input">
+                    <input id="pgp_ax_od" type="number" min="1" max="180" class="small-input od-input"><input id="pgp_add_od" class="small-input od-input">
                 </div>
                 <div class="opto-grid pgp">
-                    <div><strong style="color:#004085">Left (OS)</strong></div>
-                    <input id="pgp_sph_os" class="small-input os-input">
-                    <input id="pgp_cyl_os" class="small-input os-input">
-                    <input id="pgp_ax_os" type="number" min="0" max="180" class="small-input os-input">
-                    <input id="pgp_add_os" class="small-input os-input">
+                    <div><strong style="color:#004085">OS</strong></div>
+                    <input id="pgp_sph_os" class="small-input os-input"><input id="pgp_cyl_os" class="small-input os-input">
+                    <input id="pgp_ax_os" type="number" min="1" max="180" class="small-input os-input"><input id="pgp_add_os" class="small-input os-input">
                 </div>
             </fieldset>
 
             <fieldset><legend>Visual Acuity</legend>
                 <div class="opto-grid header"><div>Test</div><div>Right Eye (OD)</div><div>Left Eye (OS)</div></div>
-                <div class="opto-grid"><div>Distance (Unaided)</div><input id="va_od_dist" class="small-input od-input" placeholder="6/.."><input id="va_os_dist" class="small-input os-input" placeholder="6/.."></div>
+                <div class="opto-grid"><div>Distance (Unaided)</div><input id="va_od_dist" class="small-input od-input" placeholder="6/..."><input id="va_os_dist" class="small-input os-input" placeholder="6/..."></div>
                 <div class="opto-grid"><div>With Rx</div><input id="va_od_rx" class="small-input od-input"><input id="va_os_rx" class="small-input os-input"></div>
                 <div class="opto-grid"><div>Pinhole</div><input id="va_od_ph" class="small-input od-input"><input id="va_os_ph" class="small-input os-input"></div>
                 <div class="opto-grid"><div>Near</div><input id="va_od_near" class="small-input od-input" value="N6"><input id="va_os_near" class="small-input os-input" value="N6"></div>
-                
                 <div class="va-chart-grid">
                     <div class="va-item" onclick="fillActiveVA('6/6')">6/6</div><div class="va-item" onclick="fillActiveVA('6/9')">6/9</div>
                     <div class="va-item" onclick="fillActiveVA('6/12')">6/12</div><div class="va-item" onclick="fillActiveVA('6/18')">6/18</div>
@@ -120,12 +145,12 @@
             </fieldset>
 
             <fieldset><legend>Refraction</legend>
-                <div class="opto-grid refraction header"><div>Eye</div><div>Sph</div><div>Cyl</div><div>Axis</div><div>Add</div><div>Final VA</div></div>
+                <div class="opto-grid refraction" style="background:rgba(0,0,0,0.03); font-weight:bold;"><div>Eye</div><div>Sph</div><div>Cyl</div><div>Axis</div><div>Add</div><div>VA</div></div>
                 <div class="opto-grid refraction">
                     <div><strong style="color:#d60000">OD</strong></div>
                     <input id="rx_sph_od" class="small-input od-input" onblur="validateRx(this, 'sph')">
                     <input id="rx_cyl_od" class="small-input od-input" onblur="validateRx(this, 'cyl')">
-                    <input id="rx_ax_od" type="number" min="0" max="180" class="small-input od-input" onblur="validateRx(this, 'ax')">
+                    <input id="rx_ax_od" type="number" min="1" max="180" class="small-input od-input" onblur="validateRx(this, 'ax')">
                     <input id="rx_add_od" class="small-input od-input">
                     <input id="rx_va_od" class="small-input od-input">
                 </div>
@@ -133,7 +158,7 @@
                     <div><strong style="color:#004085">OS</strong></div>
                     <input id="rx_sph_os" class="small-input os-input" onblur="validateRx(this, 'sph')">
                     <input id="rx_cyl_os" class="small-input os-input" onblur="validateRx(this, 'cyl')">
-                    <input id="rx_ax_os" type="number" min="0" max="180" class="small-input os-input" onblur="validateRx(this, 'ax')">
+                    <input id="rx_ax_os" type="number" min="1" max="180" class="small-input os-input" onblur="validateRx(this, 'ax')">
                     <input id="rx_add_os" class="small-input os-input">
                     <input id="rx_va_os" class="small-input os-input">
                 </div>
@@ -144,30 +169,45 @@
                 <div class="opto-grid header"><div>Exam</div><div>Right Eye</div><div>Left Eye</div></div>
                 <div class="opto-grid"><div>External</div><input id="ext_od" class="small-input" value="WNL"><input id="ext_os" class="small-input" value="WNL"></div>
                 <div class="opto-grid"><div>EOM</div><input id="eom_od" class="small-input" value="Full/Free"><input id="eom_os" class="small-input" value="Full/Free"></div>
+                
                 <div class="opto-grid"><div>Cover Test (Dist)</div><input id="ct_dist_od" class="small-input" value="Ortho"><input id="ct_dist_os" class="small-input" value="Ortho"></div>
                 <div class="opto-grid"><div>Cover Test (Near)</div><input id="ct_near_od" class="small-input" value="Ortho"><input id="ct_near_os" class="small-input" value="Ortho"></div>
-                
-                <div class="opto-grid header" style="margin-top:10px;"><div>Slit Lamp</div><div>Right Eye</div><div>Left Eye</div></div>
+
+                <div class="opto-grid" style="border-top:2px solid var(--border); margin-top:10px;"><div><strong>Slit Lamp</strong></div><div></div><div></div></div>
                 <div class="opto-grid"><div>Lids</div><input id="sl_lids_od" value="NAD"><input id="sl_lids_os" value="NAD"></div>
                 <div class="opto-grid"><div>Conjunctiva</div><input id="sl_conj_od" value="Clear"><input id="sl_conj_os" value="Clear"></div>
                 <div class="opto-grid"><div>Cornea</div><input id="sl_corn_od" value="Clear"><input id="sl_corn_os" value="Clear"></div>
                 <div class="opto-grid"><div>AC</div><input id="sl_ac_od" value="Normal"><input id="sl_ac_os" value="Normal"></div>
                 <div class="opto-grid"><div>Pupil</div><input id="sl_pupil_od" value="R R R"><input id="sl_pupil_os" value="R R R"></div>
-                <div class="opto-grid"><div>Lens</div><input id="sl_lens_od" class="small-input"><input id="sl_lens_os" class="small-input"></div>
-                <div class="opto-grid"><div><strong>IOP (mmHg)</strong></div><input id="sl_iop_od" type="number" class="small-input" onblur="checkIOP()"><input id="sl_iop_os" type="number" class="small-input" onblur="checkIOP()"></div>
-                <div id="iop-warning" class="warning-text"></div>
+                <div class="opto-grid"><div>Lens</div><input id="sl_lens_od"><input id="sl_lens_os"></div>
+                <div class="opto-grid">
+                    <div><strong>IOP (mmHg)</strong></div>
+                    <input id="sl_iop_od" type="number" step="0.1" class="small-input" onblur="checkIOP()">
+                    <input id="sl_iop_os" type="number" step="0.1" class="small-input" onblur="checkIOP()">
+                </div>
+                <div id="iop-warning" class="warning-text" style="font-weight:bold; color:#d60000;"></div>
                 <div class="row" style="margin-top:10px;"><div class="col wide"><label>Remarks</label><input id="sl_remarks" type="text"></div></div>
             </fieldset>
             
-            <div class="row" style="background:#fff3cd; padding:10px; margin-top:15px;">
-                <div class="col wide"><label style="font-weight:bold;">Dilation</label>
-                    <select id="dilation_instruct" onchange="checkDilationSafety(this.value)"><option value="None">-- Select --</option><option value="Dilate">Dilate</option><option value="Dilate after consultation">Dilate after consultation</option><option value="Do not dilate">Do not dilate</option></select>
-                    <div id="dilation-warning" class="hidden" style="color:#d9534f; font-weight:bold; margin-top:5px;">⚠️ CHECK ANGLES & IOP BEFORE DILATION</div>
+            <div class="row" style="background:#fff3cd; padding:10px; margin-top:15px; border-radius:4px;">
+                <div class="col">
+                    <label style="font-weight:bold; color:#000;">Dilation</label>
+                    <select id="dilation_instruct" onchange="checkDilationSafety(this.value)">
+                        <option value="None">-- Select --</option>
+                        <option value="Dilate">Dilate</option>
+                        <option value="Dilate after consultation">Dilate after consultation</option>
+                        <option value="Do not dilate">Do not dilate</option>
+                    </select>
+                    <div id="dilation-warning" class="hidden" style="color:#d9534f; font-weight:bold; margin-top:5px;">⚠️ CHECK ANGLES & IOP FIRST</div>
+                </div>
+                <div class="col">
+                    <label style="font-weight:bold; color:#000;">Suggested Follow-up</label>
+                    <input type="date" id="opt_follow_up" onchange="validateDate(this)">
                 </div>
             </div>
 
             <div class="actions" style="margin-top: 20px;">
-                <button type="button" class="btn" id="saveBtn" onclick="saveWorkup()">Save & Send to Doctor</button>
+                <button type="button" class="btn" id="btn-save-workup" onclick="saveWorkup(false)">Save & Send to Doctor</button>
                 <button type="button" class="btn info" onclick="printRx()">Print Spectacle Rx</button>
                 <button type="button" class="btn ghost" onclick="closeWorkup()">Cancel</button>
             </div>
@@ -175,204 +215,278 @@
     </section>
 </div>
 
+<div class="theme-toggle-wrapper">
+    <button class="theme-btn" onclick="setTheme('light')" title="Light">☀️</button>
+    <button class="theme-btn" onclick="setTheme('dark')" title="Dark">🌙</button>
+    <button class="theme-btn" onclick="setTheme('high-contrast')" title="Contrast">👁️</button>
+</div>
+
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, doc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, doc, updateDoc, onSnapshot, query, where, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyBne_-4FcG5DjtUDVwdd1K-XDsHjX0JOEo",
-        authDomain: "msn-hospital.firebaseapp.com",
-        projectId: "msn-hospital",
-        storageBucket: "msn-hospital.firebasestorage.app",
-        messagingSenderId: "525072218332",
-        appId: "1:525072218332:web:5940ec924f59db675adc19",
-        measurementId: "G-FXXZ7STWDJ"
-    };
-
+    const firebaseConfig = { apiKey: "AIzaSyBne_-4FcG5DjtUDVwdd1K-XDsHjX0JOEo", authDomain: "msn-hospital.firebaseapp.com", projectId: "msn-hospital", storageBucket: "msn-hospital.firebasestorage.app", messagingSenderId: "525072218332", appId: "1:525072218332:web:5940ec924f59db675adc19", measurementId: "G-FXXZ7STWDJ" };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
     let currentVisit = null;
     let allVisits = [];
-    let allPatients = []; 
     let systemicDiseasesList = [];
     let autoSaveTimer = null;
-    let autoSaveAttached = false; // FIX: prevent duplicate listeners
+    let autoSaveAttached = false;
 
-    onSnapshot(collection(db, "patients"), (snapshot) => {
-        allPatients = snapshot.docs.map(doc => doc.data());
-        if(allVisits.length > 0) renderQueue();
-    });
-
+    // Load Today's Visits (Offline Cache Support)
     const todayIso = new Date().toLocaleDateString('en-CA');
-    onSnapshot(collection(db, "visits"), (snapshot) => {
+    
+    // Check Local Cache First
+    const cachedQueue = localStorage.getItem('optoQueueCache');
+    if(cachedQueue) {
+        try {
+            allVisits = JSON.parse(cachedQueue);
+            renderQueue();
+        } catch(e) { console.error("Cache error", e); }
+    }
+
+    const q = query(collection(db, "visits"), where("isoDate", "==", todayIso));
+    onSnapshot(q, (snapshot) => {
         allVisits = snapshot.docs.map(doc => ({ ...doc.data(), firebaseId: doc.id }));
+        localStorage.setItem('optoQueueCache', JSON.stringify(allVisits)); // Update Cache
         renderQueue();
+        document.getElementById('connection-status').innerText = "● Live";
+        document.getElementById('connection-status').style.color = "green";
+    }, (err) => {
+        console.error(err);
+        document.getElementById('connection-status').innerText = "⚠️ Offline";
+        document.getElementById('connection-status').style.color = "red";
     });
 
-    // --- AUTO SAVE LOGIC ---
+    // --- SMART AUTO SAVE ---
     function setupAutoSave() {
-        if(autoSaveAttached) return; // FIX: Guard clause
-        document.getElementById('optoForm').addEventListener('input', () => {
+        if(autoSaveAttached) return;
+        const form = document.getElementById('optoForm');
+        form.addEventListener('input', () => {
+            if(!currentVisit) return;
+            // Stop if input is invalid
+            if(document.querySelector('.invalid-input')) return; 
+
             if(autoSaveTimer) clearTimeout(autoSaveTimer);
+            document.getElementById('save-status').innerText = "Saving draft...";
             autoSaveTimer = setTimeout(() => {
-                if(currentVisit) localStorage.setItem('draft_' + currentVisit.pid, JSON.stringify(gatherData()));
-            }, 30000); 
+                const data = gatherData();
+                localStorage.setItem('draft_' + currentVisit.pid, JSON.stringify(data));
+                document.getElementById('save-status').innerText = "Draft Saved";
+            }, 2000);
         });
         autoSaveAttached = true;
     }
 
     function checkDraft(pid) {
         const draft = localStorage.getItem('draft_' + pid);
-        if(draft && confirm("Found unsaved draft. Load it?")) {
+        if(draft && confirm("Found unsaved draft for this patient. Restore it?")) {
             populateForm(JSON.parse(draft));
         }
     }
 
+    // --- RENDER QUEUE ---
     function renderQueue() {
         const tbody = document.querySelector('#opto-queue-table tbody');
         if (!tbody) return;
         tbody.innerHTML = '';
-        const queue = allVisits.filter(v => {
-            const isToday = (v.isoDate && v.isoDate === todayIso) || (v.date === new Date().toLocaleDateString());
-            return isToday && (v.status === 'Waiting' || v.status === 'Investigation');
-        });
-        if (queue.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px;">No patients waiting.</td></tr>'; return; }
         
+        const queue = allVisits.filter(v => 
+            v.status === 'Waiting' || v.status === 'Investigation' || v.status === 'Report Ready' || v.status === 'With Doctor'
+        );
+        
+        if (queue.length === 0) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px;">No patients waiting.</td></tr>'; return; }
         queue.sort((a,b) => (a.timestamp || 0) - (b.timestamp || 0));
 
         queue.forEach(v => {
-            const patientData = allPatients.find(p => p.id === v.pid);
-            const address = patientData ? patientData.address : '-';
             const tr = document.createElement('tr');
-            let statusBadge = `<span class="status-waiting">${v.status}</span>`;
-            if(v.status === 'Investigation') statusBadge = `<span class="status-investigation">Investigation</span>`;
-            const displayAddr = v.address || address;
-            tr.innerHTML = `<td><strong>${v.opdId}</strong></td><td>${v.pid}</td><td>${v.patientName}</td><td>${displayAddr}</td><td>${v.age}Y/${v.gender}</td><td>${statusBadge}</td><td><button class="btn small" onclick="window.loadPatient('${v.firebaseId}')">Workup</button></td>`;
+            let statusBadge = `<span class="status-badge" style="background:#ffc107; color:#333;">Waiting</span>`;
+            if(v.status === 'Investigation') statusBadge = `<span class="status-badge" style="background:#fd7e14; color:white;">Investigation</span>`;
+            if(v.status === 'Report Ready') statusBadge = `<span class="status-badge" style="background:#28a745; color:white;">Report Sent</span>`;
+            if(v.status === 'With Doctor') statusBadge = `<span class="status-badge" style="background:#007bff; color:white;">With Doctor</span>`;
+            
+            tr.innerHTML = `<td><strong>${v.opdId}</strong></td><td>${v.pid}</td><td>${v.patientName}</td><td>${v.age}Y/${v.gender}</td><td>${statusBadge}</td><td><button class="btn small" onclick="window.loadPatient('${v.firebaseId}')">Open</button></td>`;
             tbody.appendChild(tr);
         });
     }
 
+    // --- LOAD PATIENT ---
     window.loadPatient = function(firebaseId) {
         currentVisit = allVisits.find(v => v.firebaseId === firebaseId);
         if(!currentVisit) return;
+        
         document.getElementById('queue-view').classList.add('hidden');
         document.getElementById('workup-view').classList.remove('hidden');
         document.getElementById('p-header').innerText = currentVisit.patientName;
-        document.getElementById('p-details').innerText = `PID: ${currentVisit.pid}`;
+        document.getElementById('p-details').innerText = `PID: ${currentVisit.pid} | Age: ${currentVisit.age}`;
         document.getElementById('optoForm').reset();
-        systemicDiseasesList = [];
+        document.getElementById('opt_follow_up').value = ""; // Fix 3: Clear explicitly
+        document.getElementById('iop-warning').innerText = "";
+        document.getElementById('rx-warning').innerText = "";
         
+        systemicDiseasesList = []; 
+        
+        // HARD LOCK CHECK
+        const isLocked = (currentVisit.status === 'With Doctor' || currentVisit.status === 'Completed');
+        if(isLocked) {
+            document.getElementById('lock-banner').classList.remove('hidden');
+            document.getElementById('optoForm').classList.add('read-only-mode');
+            document.getElementById('btn-save-workup').disabled = true;
+        } else {
+            document.getElementById('lock-banner').classList.add('hidden');
+            document.getElementById('optoForm').classList.remove('read-only-mode');
+            document.getElementById('btn-save-workup').disabled = false;
+        }
+
         if(currentVisit.optoData) populateForm(currentVisit.optoData);
-        
-        checkDraft(currentVisit.pid);
-        setupAutoSave();
+        if(!isLocked) checkDraft(currentVisit.pid);
 
         const panel = document.getElementById('investigation-panel');
         if(currentVisit.status === 'Investigation') {
             panel.classList.remove('hidden');
-            document.getElementById('inv-request-text').innerText = currentVisit.investigationRequest || "No notes.";
+            document.getElementById('inv-request-text').innerText = currentVisit.investigationRequest || "See notes";
             document.getElementById('inv-report-input').value = currentVisit.investigationReport || "";
         } else {
             panel.classList.add('hidden');
         }
+        
         renderSysList();
+        setupAutoSave();
     };
 
-    function populateForm(d) {
-        const setVal = (id, val) => { if(document.getElementById(id)) document.getElementById(id).value = val || ''; }
-        setVal('chief_complaint', d.history?.complaint); setVal('ocular_history', d.history?.ocular_hx); setVal('allergies', d.history?.allergies);
-        setVal('pgp_sph_od', d.pgp?.od?.sph); setVal('pgp_cyl_od', d.pgp?.od?.cyl); setVal('pgp_ax_od', d.pgp?.od?.ax); setVal('pgp_add_od', d.pgp?.od?.add);
-        setVal('pgp_sph_os', d.pgp?.os?.sph); setVal('pgp_cyl_os', d.pgp?.os?.cyl); setVal('pgp_ax_os', d.pgp?.os?.ax); setVal('pgp_add_os', d.pgp?.os?.add);
-        setVal('va_od_dist', d.va?.od?.dist); setVal('va_od_rx', d.va?.od?.rx); setVal('va_od_ph', d.va?.od?.ph); setVal('va_od_near', d.va?.od?.near);
-        setVal('va_os_dist', d.va?.os?.dist); setVal('va_os_rx', d.va?.os?.rx); setVal('va_os_ph', d.va?.os?.ph); setVal('va_os_near', d.va?.os?.near);
-        setVal('rx_sph_od', d.refraction?.od?.sph); setVal('rx_cyl_od', d.refraction?.od?.cyl); setVal('rx_ax_od', d.refraction?.od?.ax); setVal('rx_add_od', d.refraction?.od?.add); setVal('rx_va_od', d.refraction?.od?.va);
-        setVal('rx_sph_os', d.refraction?.os?.sph); setVal('rx_cyl_os', d.refraction?.os?.cyl); setVal('rx_ax_os', d.refraction?.os?.ax); setVal('rx_add_os', d.refraction?.os?.add); setVal('rx_va_os', d.refraction?.os?.va);
-        setVal('ext_od', d.external?.od?.ext); setVal('eom_od', d.external?.od?.eom); setVal('ct_dist_od', d.external?.od?.ct_dist); setVal('ct_near_od', d.external?.od?.ct_near);
-        setVal('ext_os', d.external?.os?.ext); setVal('eom_os', d.external?.os?.eom); setVal('ct_dist_os', d.external?.os?.ct_dist); setVal('ct_near_os', d.external?.os?.ct_near);
-        setVal('sl_lids_od', d.slitlamp?.od?.lids); setVal('sl_conj_od', d.slitlamp?.od?.conj); setVal('sl_corn_od', d.slitlamp?.od?.corn); setVal('sl_ac_od', d.slitlamp?.od?.ac); setVal('sl_pupil_od', d.slitlamp?.od?.pupil);
-        setVal('sl_lids_os', d.slitlamp?.os?.lids); setVal('sl_conj_os', d.slitlamp?.os?.conj); setVal('sl_corn_os', d.slitlamp?.os?.corn); setVal('sl_ac_os', d.slitlamp?.os?.ac); setVal('sl_pupil_os', d.slitlamp?.os?.pupil);
-        setVal('sl_lens_od', d.slitlamp?.lens_od); setVal('sl_lens_os', d.slitlamp?.lens_os);
-        setVal('sl_iop_od', d.slitlamp?.iop_od); setVal('sl_iop_os', d.slitlamp?.iop_os);
-        setVal('sl_remarks', d.slitlamp?.remarks); setVal('dilation_instruct', d.plan?.dilation);
-        window.checkDilationSafety(d.plan?.dilation || "");
-    }
-
-    function gatherData() {
-        return {
-            // FIX: Include duration in systemic disease list
-            history: { complaint: v('chief_complaint'), ocular_hx: v('ocular_history'), systemic: systemicDiseasesList.map(x => x.name + (x.dur ? ` (${x.dur})` : '')).join(', '), allergies: v('allergies') },
-            pgp: { od: { sph: v('pgp_sph_od'), cyl: v('pgp_cyl_od'), ax: v('pgp_ax_od'), add: v('pgp_add_od') }, os: { sph: v('pgp_sph_os'), cyl: v('pgp_cyl_os'), ax: v('pgp_ax_os'), add: v('pgp_add_os') } },
-            va: { od: { dist: v('va_od_dist'), rx: v('va_od_rx'), ph: v('va_od_ph'), near: v('va_od_near') }, os: { dist: v('va_os_dist'), rx: v('va_os_rx'), ph: v('va_os_ph'), near: v('va_os_near') } },
-            external: { od: { ext: v('ext_od'), eom: v('eom_od'), ct_dist: v('ct_dist_od'), ct_near: v('ct_near_od') }, os: { ext: v('ext_os'), eom: v('eom_os'), ct_dist: v('ct_dist_os'), ct_near: v('ct_near_os') } },
-            refraction: { od: { sph: v('rx_sph_od'), cyl: v('rx_cyl_od'), ax: v('rx_ax_od'), add: v('rx_add_od'), va: v('rx_va_od') }, os: { sph: v('rx_sph_os'), cyl: v('rx_cyl_os'), ax: v('rx_ax_os'), add: v('rx_add_os'), va: v('rx_va_os') } },
-            slitlamp: { iop_od: v('sl_iop_od'), iop_os: v('sl_iop_os'), lens_od: v('sl_lens_od'), lens_os: v('sl_lens_os'), remarks: v('sl_remarks'), od: { lids: v('sl_lids_od'), conj: v('sl_conj_od'), corn: v('sl_corn_od'), ac: v('sl_ac_od'), pupil: v('sl_pupil_od') }, os: { lids: v('sl_lids_os'), conj: v('sl_conj_os'), corn: v('sl_corn_os'), ac: v('sl_ac_os'), pupil: v('sl_pupil_os') } },
-            plan: { dilation: v('dilation_instruct') }
-        };
-    }
-
-    // --- CLINICAL TOOLS ---
-    window.checkDilationSafety = function(val) { 
-        const warn = document.getElementById('dilation-warning'); 
-        if (val.includes("Dilate")) warn.classList.remove('hidden'); else warn.classList.add('hidden'); 
-    }
-
-    window.validateRx = function(el, type) {
-        const val = parseFloat(el.value);
-        if(isNaN(val)) return;
-        let warning = "";
-        if(type === 'ax' && (val < 0 || val > 180)) warning = "Axis must be 0-180";
-        if(type === 'sph' && Math.abs(val) > 25) warning = "High Sphere! Verify.";
-        
-        document.getElementById('rx-warning').innerText = warning;
-        if(warning) el.classList.add('invalid-input'); else el.classList.remove('invalid-input');
-    }
-
-    window.checkIOP = function() {
-        const od = parseInt(v('sl_iop_od')); const os = parseInt(v('sl_iop_os'));
-        let msg = "";
-        if((od && od > 21) || (os && os > 21)) msg += "⚠️ High IOP (>21). ";
-        if(od && os && Math.abs(od-os) > 4) msg += "⚠️ Asymmetry > 4mmHg.";
-        document.getElementById('iop-warning').innerText = msg;
-    }
-
-    window.calcAdd = function() {
-        if(!currentVisit) return;
-        const age = parseInt(currentVisit.age);
-        let add = "+0.00";
-        if(age >= 40) add = "+1.00";
-        if(age >= 45) add = "+1.50";
-        if(age >= 50) add = "+2.00";
-        if(age >= 60) add = "+2.50";
-        document.getElementById('calc-result').innerText = `Suggested Add: ${add}`;
-    }
-
-    window.calcSE = function() {
-        const sph = parseFloat(document.getElementById('se-sph').value)||0;
-        const cyl = parseFloat(document.getElementById('se-cyl').value)||0;
-        document.getElementById('se-result').innerText = "SE: " + (sph + cyl/2).toFixed(2) + " D";
-    }
-
-    window.fillActiveVA = function(val) {
-        if(document.activeElement && document.activeElement.id.includes('va_')) {
-            document.activeElement.value = val;
+    window.unlockForm = function() {
+        if(confirm("⚠️ Unlocking this record allows you to modify data already sent to the doctor. Proceed?")) {
+            document.getElementById('optoForm').classList.remove('read-only-mode');
+            document.getElementById('btn-save-workup').disabled = false;
+            document.getElementById('lock-banner').classList.add('hidden');
         }
     }
 
-    // --- MAIN FUNCTIONS ---
-    window.closeWorkup = function() {
-        document.getElementById('workup-view').classList.add('hidden');
-        document.getElementById('queue-view').classList.remove('hidden');
-        currentVisit = null;
-    };
+    function populateForm(d) {
+        const setVal = (id, val) => { if(document.getElementById(id)) document.getElementById(id).value = val || ''; }
+        
+        setVal('chief_complaint', d.history?.complaint); 
+        setVal('ocular_history', d.history?.ocular_hx); 
+        setVal('allergies', d.history?.allergies);
+        
+        if(d.history?.systemicList) systemicDiseasesList = d.history.systemicList;
+
+        ['od','os'].forEach(eye => {
+            ['sph','cyl','ax','add'].forEach(f => setVal(`pgp_${f}_${eye}`, d.pgp?.[eye]?.[f]));
+            ['dist','rx','ph','near'].forEach(f => setVal(`va_${eye}_${f}`, d.va?.[eye]?.[f]));
+            ['sph','cyl','ax','add','va'].forEach(f => setVal(`rx_${f}_${eye}`, d.refraction?.[eye]?.[f]));
+        });
+
+        setVal('ext_od', d.external?.od?.ext); setVal('ext_os', d.external?.os?.ext);
+        setVal('eom_od', d.external?.od?.eom); setVal('eom_os', d.external?.os?.eom);
+        setVal('ct_dist_od', d.external?.od?.ct_dist); setVal('ct_dist_os', d.external?.os?.ct_dist);
+        setVal('ct_near_od', d.external?.od?.ct_near); setVal('ct_near_os', d.external?.os?.ct_near);
+
+        const sl = d.slitlamp || {};
+        ['od','os'].forEach(eye => {
+            const e = sl[eye] || {};
+            setVal(`sl_lids_${eye}`, e.lids);
+            setVal(`sl_conj_${eye}`, e.conj);
+            setVal(`sl_corn_${eye}`, e.corn); 
+            setVal(`sl_ac_${eye}`, e.ac);
+            setVal(`sl_pupil_${eye}`, e.pupil);
+        });
+        setVal('sl_lens_od', sl.lens_od); setVal('sl_lens_os', sl.lens_os);
+        setVal('sl_iop_od', sl.iop_od); setVal('sl_iop_os', sl.iop_os);
+        setVal('sl_remarks', sl.remarks);
+        
+        setVal('dilation_instruct', d.plan?.dilation);
+        setVal('opt_follow_up', d.plan?.followUp);
+        
+        window.checkDilationSafety(d.plan?.dilation || "");
+        window.checkIOP();
+    }
+
+    function gatherData() {
+        const sysText = systemicDiseasesList.map(x => x.name + (x.dur ? ` (${x.dur})` : '')).join(', '); // Fix 9: Formatting
+        return {
+            history: { 
+                complaint: v('chief_complaint'), ocular_hx: v('ocular_history'), 
+                systemic: sysText, systemicList: systemicDiseasesList, allergies: v('allergies') 
+            },
+            pgp: { 
+                od: { sph: v('pgp_sph_od'), cyl: v('pgp_cyl_od'), ax: v('pgp_ax_od'), add: v('pgp_add_od') }, 
+                os: { sph: v('pgp_sph_os'), cyl: v('pgp_cyl_os'), ax: v('pgp_ax_os'), add: v('pgp_add_os') } 
+            },
+            va: { 
+                od: { dist: v('va_od_dist'), rx: v('va_od_rx'), ph: v('va_od_ph'), near: v('va_od_near') }, 
+                os: { dist: v('va_os_dist'), rx: v('va_os_rx'), ph: v('va_os_ph'), near: v('va_os_near') } 
+            },
+            external: { 
+                od: { ext: v('ext_od'), eom: v('eom_od'), ct_dist: v('ct_dist_od'), ct_near: v('ct_near_od') }, 
+                os: { ext: v('ext_os'), eom: v('eom_os'), ct_dist: v('ct_dist_os'), ct_near: v('ct_near_os') } 
+            },
+            refraction: { 
+                od: { sph: v('rx_sph_od'), cyl: v('rx_cyl_od'), ax: v('rx_ax_od'), add: v('rx_add_od'), va: v('rx_va_od') }, 
+                os: { sph: v('rx_sph_os'), cyl: v('rx_cyl_os'), ax: v('rx_ax_os'), add: v('rx_add_os'), va: v('rx_va_os') } 
+            },
+            slitlamp: { 
+                iop_od: v('sl_iop_od'), iop_os: v('sl_iop_os'), lens_od: v('sl_lens_od'), lens_os: v('sl_lens_os'), remarks: v('sl_remarks'), 
+                od: { lids: v('sl_lids_od'), conj: v('sl_conj_od'), corn: v('sl_corn_od'), ac: v('sl_ac_od'), pupil: v('sl_pupil_od') }, 
+                os: { lids: v('sl_lids_os'), conj: v('sl_conj_os'), corn: v('sl_corn_os'), ac: v('sl_ac_os'), pupil: v('sl_pupil_os') } 
+            },
+            plan: { dilation: v('dilation_instruct'), followUp: v('opt_follow_up') }
+        };
+    }
+
+    function v(id) { return document.getElementById(id) ? document.getElementById(id).value.trim() : ""; }
+
+    // --- TOOLS & VALIDATION ---
+    window.checkIOP = function() {
+        const od = parseFloat(v('sl_iop_od')); const os = parseFloat(v('sl_iop_os'));
+        let msg = "";
+        // Fix 4: Proper Zero Check
+        if((!isNaN(od) && od > 21) || (!isNaN(os) && os > 21)) msg += "⚠️ High IOP (>21 mmHg). ";
+        if(!isNaN(od) && !isNaN(os) && Math.abs(od-os) > 4) msg += "⚠️ Asymmetry > 4mmHg.";
+        document.getElementById('iop-warning').innerText = msg;
+    }
+
+    window.validateDate = function(el) {
+        if(!el.value) return;
+        const sel = new Date(el.value);
+        const today = new Date(); today.setHours(0,0,0,0);
+        if(sel <= today) { alert("Follow-up must be a future date."); el.value = ""; }
+    }
+
+    window.validateRx = function(el, type) {
+        let val = parseFloat(el.value);
+        let warning = "";
+        const warnBox = document.getElementById('rx-warning');
+        
+        if (el.value === "") { el.classList.remove('invalid-input'); warnBox.innerText = ""; return; }
+
+        if(type === 'ax' && (val < 1 || val > 180)) {
+            warning = "Axis must be 1-180";
+            el.classList.add('invalid-input');
+        } else if (type === 'sph' && Math.abs(val) > 25) {
+            warning = "High Sphere! Verify.";
+            el.classList.add('invalid-input');
+        } else {
+            el.classList.remove('invalid-input');
+        }
+        warnBox.innerText = warning;
+    }
 
     window.addSystemicDisease = function() {
         const d = document.getElementById('sys_select').value;
         const dur = document.getElementById('sys_duration').value;
         if(!d) return;
+        
+        if(systemicDiseasesList.some(x => x.name === d)) { alert("Disease already added!"); return; }
+        
         systemicDiseasesList.push({ name: d, dur: dur });
         renderSysList();
+        document.getElementById('sys_select').value = "";
+        document.getElementById('sys_duration').value = "";
     };
+    
     window.removeSysDisease = function(index) { systemicDiseasesList.splice(index, 1); renderSysList(); };
     function renderSysList() {
         const c = document.getElementById('sys_disease_list'); c.innerHTML = '';
@@ -381,56 +495,106 @@
         });
     }
 
-    function v(id) { return document.getElementById(id) ? document.getElementById(id).value : ""; }
+    window.fillActiveVA = function(val) { if(document.activeElement && document.activeElement.id.includes('va_')) document.activeElement.value = val; }
+    
+    window.closeWorkup = function() { 
+        if(localStorage.getItem('draft_' + currentVisit.pid)) {
+            // Auto-clear draft on explicit close to prevent confusion next time
+            localStorage.removeItem('draft_' + currentVisit.pid);
+        }
+        document.getElementById('workup-view').classList.add('hidden');
+        document.getElementById('queue-view').classList.remove('hidden');
+        currentVisit = null;
+    };
+    
+    window.checkDilationSafety = function(val) { const warn = document.getElementById('dilation-warning'); if (val.includes("Dilate")) warn.classList.remove('hidden'); else warn.classList.add('hidden'); }
 
-    window.saveWorkup = async function() {
+    // --- SAVE ---
+    window.saveWorkup = async function(silent = false) {
         if(!currentVisit) return;
         
-        // Safety Check for High Myopia / Glaucoma
-        const sph = parseFloat(v('rx_sph_od'));
-        if(sph < -6 && !confirm("⚠️ High Myopia detected (-6D). Did you check retina?")) return;
+        // Safety Checks only if not silent (Silent is used for Print pre-save)
+        if (!silent) {
+            const age = parseInt(currentVisit.age);
+            if(age < 12 && !confirm("⚠️ PAEDIATRIC PATIENT (<12Y)\nHave you ruled out Amblyopia/Squint?")) return;
+            if(age > 60 && !confirm("⚠️ SENIOR PATIENT (>60Y)\nHave you screened for Cataract/Glaucoma?")) return;
+            const sph = parseFloat(v('rx_sph_od'));
+            if(sph < -6 && !confirm("⚠️ High Myopia (-6D+). Retina Eval recommended. Proceed?")) return;
+        }
 
         const optoData = gatherData();
+        const btn = document.getElementById('btn-save-workup');
 
         try {
-            const btn = document.querySelector('.btn'); btn.innerText = "Saving...";
+            if(!silent) { btn.innerText = "Saving..."; btn.disabled = true; }
+            
             await updateDoc(doc(db, "visits", currentVisit.firebaseId), {
                 optoData: optoData,
                 status: "With Doctor"
             });
-            localStorage.removeItem('draft_' + currentVisit.pid); // Clear draft
-            alert("Success! Sent to Doctor.");
-            closeWorkup();
+            
+            // Auto-Book Follow-up
+            const fDate = v('opt_follow_up');
+            if(fDate) {
+               const q = query(collection(db, "appointments"), where("pid", "==", currentVisit.pid), where("date", "==", fDate));
+               const snap = await getDocs(q); 
+               if(snap.empty) {
+                   await addDoc(collection(db, "appointments"), {
+                       pid: currentVisit.pid, patientName: currentVisit.patientName,
+                       phone: currentVisit.phone || "", date: fDate, doctor: "Optometrist (Ref)",
+                       type: "Follow-up", status: "Scheduled", createdAt: new Date().toISOString()
+                   });
+               }
+            }
+
+            localStorage.removeItem('draft_' + currentVisit.pid);
+            if(!silent) {
+                alert("Success! Sent to Doctor.");
+                // Reload to refresh view and lock if necessary
+                location.reload(); 
+            }
         } catch(e) {
-            alert("Error saving: " + e.message);
+            alert("Error saving: " + e.message + "\nCheck Internet.");
         } finally {
-            document.querySelector('.btn').innerText = "Save & Send to Doctor";
+            if(!silent) { btn.innerText = "Save & Send to Doctor"; btn.disabled = false; }
         }
     };
 
     window.saveInvestigationReport = async function() {
         const report = document.getElementById('inv-report-input').value;
-        if(!report) { alert("Please type the investigation results first."); return; }
+        if(!report) { alert("Please type results."); return; }
+        
+        if(currentVisit.investigationReport && !confirm("Overwrite existing report?")) return;
 
         try {
             await updateDoc(doc(db, "visits", currentVisit.firebaseId), {
                 investigationReport: report,
+                investigationAt: new Date().toISOString(), // Fix 7: Audit Info
+                investigationBy: "Optometrist",
                 status: "Report Ready"
             });
-            alert("Report Sent to Doctor!");
-            closeWorkup();
-        } catch(e) { alert(e.message); }
+            alert("Report Sent!");
+            location.reload();
+        } catch(e) { alert("Error: " + e.message); }
     };
 
-    window.printRx = function() {
+    window.printRx = async function() {
         if(!currentVisit) return;
+        
+        // Fix 8: Save before Print to ensure data consistency
+        await saveWorkup(true);
+
         const n = currentVisit.patientName;
         const d = new Date().toLocaleDateString('en-GB'); 
         const win = window.open('', '', 'width=800,height=600');
+        if(!win) { alert("Popup blocked!"); return; }
         
-        // FIX: Replaced undefined variable loggedInDoctor with generic title or local storage value
+        const fmt = (val) => { const n = parseFloat(val); return isNaN(n) ? val : (n > 0 ? '+'+n.toFixed(2) : n.toFixed(2)); }
+        const dilationVal = v('dilation_instruct');
+        const dilateNote = dilationVal && dilationVal.includes("Dilate") ? "<br><small><i>* Refraction done under Dilation</i></small>" : "";
+
         const content = `
-        <html><head><title>Glasses Rx</title><base href="${window.location.href}"><style>body{font-family:sans-serif;padding:30px;} table{width:100%;border-collapse:collapse;margin-top:20px;} th, td{border:1px solid #000;padding:12px;text-align:center;}</style></head><body onload="setTimeout(function(){window.print();window.close()}, 800)">
+        <html><head><title>Glasses Rx</title><style>body{font-family:sans-serif;padding:30px;} table{width:100%;border-collapse:collapse;margin-top:20px;} th, td{border:1px solid #000;padding:12px;text-align:center;}</style></head><body onload="setTimeout(function(){window.print();window.close()}, 800)">
             <div style="text-align:center;border-bottom:3px solid #004085;padding-bottom:10px;margin-bottom:20px;">
                 <img src="logo.png" style="width:100px;">
                 <h2 style="color:#004085;margin:0;">MSN Cataract and IOL Hospital</h2>
@@ -438,13 +602,49 @@
             </div>
             <h3 style="text-align:center;text-decoration:underline;">Spectacle Prescription</h3>
             <p><strong>Name:</strong> ${n} &nbsp;&nbsp; <strong>Date:</strong> ${d} &nbsp;&nbsp; <strong>Age:</strong> ${currentVisit.age}Y</p>
-            <table><thead><tr><th>Eye</th><th>Sph</th><th>Cyl</th><th>Axis</th><th>Add</th><th>VA</th></tr></thead><tbody><tr><td>OD</td><td>${v('rx_sph_od')}</td><td>${v('rx_cyl_od')}</td><td>${v('rx_ax_od')}</td><td>${v('rx_add_od')}</td><td>${v('rx_va_od')}</td></tr><tr><td>OS</td><td>${v('rx_sph_os')}</td><td>${v('rx_cyl_os')}</td><td>${v('rx_ax_os')}</td><td>${v('rx_add_os')}</td><td>${v('rx_va_os')}</td></tr></tbody></table>
+            <table><thead><tr><th>Eye</th><th>Sph</th><th>Cyl</th><th>Axis</th><th>Add</th><th>VA</th></tr></thead><tbody>
+            <tr><td>OD</td><td>${fmt(v('rx_sph_od'))}</td><td>${fmt(v('rx_cyl_od'))}</td><td>${v('rx_ax_od')}</td><td>${fmt(v('rx_add_od'))}</td><td>${v('rx_va_od')}</td></tr>
+            <tr><td>OS</td><td>${fmt(v('rx_sph_os'))}</td><td>${fmt(v('rx_cyl_os'))}</td><td>${v('rx_ax_os')}</td><td>${fmt(v('rx_add_os'))}</td><td>${v('rx_va_os')}</td></tr>
+            </tbody></table>
+            ${dilateNote}
             <br><br><div style="text-align:right;"><strong>Optometrist</strong><br>Signature</div>
         </body></html>`;
         
         win.document.write(content); win.document.close();
     };
+    
+    // Helper Tools
+    window.calcAdd = function() {
+        if(!currentVisit) return;
+        const age = parseInt(currentVisit.age);
+        let add = "+0.00";
+        if(age >= 40) add = "+1.00"; if(age >= 45) add = "+1.50";
+        if(age >= 50) add = "+2.00"; if(age >= 60) add = "+2.50";
+        // Fix 5: Disclaimer
+        document.getElementById('calc-result').innerText = `Suggested: ${add} (Approx)`;
+    }
+    window.calcSE = function() {
+        const sph = parseFloat(document.getElementById('se-sph').value)||0;
+        const cyl = parseFloat(document.getElementById('se-cyl').value)||0;
+        document.getElementById('se-result').innerText = "SE: " + (sph + cyl/2).toFixed(2) + " D";
+    }
 </script>
+<script>
+    const savedTheme = localStorage.getItem('app-theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    updateActiveButton(savedTheme);
 
+    window.setTheme = function(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('app-theme', theme);
+        updateActiveButton(theme);
+    }
+
+    function updateActiveButton(theme) {
+        document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active'));
+        const icons = { 'light': '☀️', 'dark': '🌙', 'high-contrast': '👁️' };
+        Array.from(document.querySelectorAll('.theme-btn')).find(b => b.innerText.includes(icons[theme]))?.classList.add('active');
+    }
+</script>
 </body>
 </html>
