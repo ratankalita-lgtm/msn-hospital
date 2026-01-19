@@ -233,105 +233,110 @@
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithPhoneNumber, RecaptchaVerifier } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, signInWithPhoneNumber, RecaptchaVerifier } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    
+    // YOUR CONFIG
+    const firebaseConfig = { apiKey: "AIzaSyBne_-4FcG5DjtUDVwdd1K-XDsHjX0JOEo", authDomain: "msn-hospital.firebaseapp.com", projectId: "msn-hospital", storageBucket: "msn-hospital.firebasestorage.app", messagingSenderId: "525072218332", appId: "1:525072218332:web:5940ec924f59db675adc19", measurementId: "G-FXXZ7STWDJ" };
+    
+    // 1. Initialize
+    let app, auth;
+    try {
+        app = initializeApp(firebaseConfig);
+        auth = getAuth(app);
+        auth.useDeviceLanguage();
+        console.log("Firebase Initialized Successfully");
+    } catch (e) {
+        alert("CRITICAL ERROR: Firebase failed to load. Check internet connection.\n\n" + e.message);
+    }
+
+    const doctorPhones = { 
+        "Dr. Jayanta Boroowa": "+918638370107", 
+        "Dr. Pratibha Chauhan Paul": "+918638370107", 
+        "Dr. Nilutpal Borah": "+918638370107", 
+        "Dr. Nilakshi Baruah": "+918638370107", 
+        "Dr. Sanjay Kr Buragohain": "+918638370107" 
+    };
+    
+    const DEPT_PIN = "1234";
+    let confirmationResult = null;
+    let targetUrl = "";
+
+    // Clear old session
+    window.onload = function() { localStorage.removeItem('loggedInDoctor'); };
+
+    window.showToast = function(msg, type='info') {
+        const t = document.createElement('div'); t.className = `toast ${type}`; t.innerText = msg;
+        document.getElementById('toast-container').appendChild(t); setTimeout(() => t.remove(), 3000);
+    };
+    window.closeModal = (id) => document.getElementById(id).style.display = 'none';
+
+    // --- LOGIN LOGIC ---
+    window.initiateLogin = function() {
+        // CHECK 1: Protocol
+        if (window.location.protocol === 'file:') {
+            alert("❌ ERROR: You are running this file directly.\nFirebase Auth DOES NOT work on file://.\n\nPlease install 'Live Server' in VS Code or use a local server.");
+            return;
+        }
+
+        const docName = document.getElementById('doc_select').value; 
+        if (!docName) { showToast("Please select your name first.", "error"); return; }
         
-        const firebaseConfig = { apiKey: "AIzaSyBne_-4FcG5DjtUDVwdd1K-XDsHjX0JOEo", authDomain: "msn-hospital.firebaseapp.com", projectId: "msn-hospital", storageBucket: "msn-hospital.firebasestorage.app", messagingSenderId: "525072218332", appId: "1:525072218332:web:5940ec924f59db675adc19", measurementId: "G-FXXZ7STWDJ" };
-        const app = initializeApp(firebaseConfig); const auth = getAuth(app);
+        const phoneNumber = doctorPhones[docName]; 
         
-        const doctorPhones = { 
-            "Dr. Jayanta Boroowa": "+918638370107", 
-            "Dr. Pratibha Chauhan Paul": "+918638370107", 
-            "Dr. Nilutpal Borah": "+918638370107", 
-            "Dr. Nilakshi Baruah": "+918638370107", 
-            "Dr. Sanjay Kr Buragohain": "+918638370107" 
-        };
+        const btn = document.querySelector('.doctor-card .login-btn'); 
+        btn.innerText = "Verifying..."; btn.disabled = true;
         
-        const DEPT_PIN = "1234"; // Hardcoded for internal use
-
-        let confirmationResult = null;
-        let targetUrl = "";
-
-        // CLEAR OLD SESSIONS ON LOAD
-        window.onload = function() {
-            localStorage.removeItem('loggedInDoctor');
-        };
-
-        // UI Helpers
-        window.showToast = function(msg, type='info') {
-            const t = document.createElement('div'); t.className = `toast ${type}`; t.innerText = msg;
-            document.getElementById('toast-container').appendChild(t); 
-            setTimeout(() => t.remove(), 3000);
-        };
-        window.closeModal = (id) => document.getElementById(id).style.display = 'none';
-
-        // --- DOCTOR LOGIN ---
-        window.setupRecaptcha = function() { 
-            if (!window.recaptchaVerifier) { window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', { 'size': 'invisible' }); } 
-        };
-
-        window.initiateLogin = function() {
-            const docName = document.getElementById('doc_select').value; 
-            if (!docName) { showToast("Please select your name first.", "error"); return; }
-            const phoneNumber = doctorPhones[docName]; 
-            if (!phoneNumber) { showToast("Phone number not configured.", "error"); return; }
-            
-            // Fix: Specific Button Selector
-            const btn = document.querySelector('.doctor-card .login-btn'); 
-            const originalText = btn.innerText; 
-            btn.innerText = "Verifying..."; btn.disabled = true;
-            
-            setupRecaptcha();
-            signInWithPhoneNumber(auth, phoneNumber, window.recaptchaVerifier)
-                .then((result) => {
-                    confirmationResult = result; 
-                    btn.innerText = originalText; btn.disabled = false;
-                    document.getElementById('otpModal').style.display = 'flex'; 
-                    document.getElementById('otpCode').value = ''; 
-                    document.getElementById('otpCode').focus();
-                }).catch((error) => { 
-                    console.error(error); 
-                    showToast("⚠️ Access Denied: " + error.message, "error"); 
-                    btn.innerText = originalText; btn.disabled = false;
-                    if(window.recaptchaVerifier) { window.recaptchaVerifier.clear(); window.recaptchaVerifier = null; }
-                });
-        };
-
-        window.verifyOtp = function() {
-            if (!confirmationResult) {
-                showToast("Session expired. Please login again.", "error");
-                closeModal('otpModal');
-                return;
+        // CHECK 2: Recaptcha
+        try {
+            if (!window.recaptchaVerifier) { 
+                window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', { 
+                    'size': 'invisible',
+                    'callback': (response) => { console.log("Recaptcha Solved"); },
+                    'expired-callback': () => { console.log("Recaptcha Expired"); }
+                }); 
             }
+        } catch (e) {
+            alert("Recaptcha Error: " + e.message);
+            btn.innerText = "Secure Login"; btn.disabled = false;
+            return;
+        }
 
-            const code = document.getElementById('otpCode').value; 
-            if (code.length < 6) { showToast("Enter complete 6-digit code.", "error"); return; }
-            
-            confirmationResult.confirm(code).then((result) => { 
-                localStorage.setItem('loggedInDoctor', document.getElementById('doc_select').value); 
-                window.location.href = 'doctor.html'; 
-            }).catch((error) => { showToast("❌ Incorrect OTP.", "error"); });
-        };
+        // CHECK 3: Sign In
+        signInWithPhoneNumber(auth, phoneNumber, window.recaptchaVerifier)
+            .then((result) => {
+                confirmationResult = result; 
+                btn.innerText = "Secure Login"; btn.disabled = false;
+                document.getElementById('otpModal').style.display = 'flex'; 
+                document.getElementById('otpCode').focus();
+            }).catch((error) => { 
+                console.error(error); 
+                // DETAILED ERROR ALERT
+                let msg = error.message;
+                if (error.code === 'auth/invalid-app-credential') msg = "Domain not authorized in Firebase Console.";
+                if (error.code === 'auth/missing-client-identifier') msg = "Billing not enabled or Captcha issue.";
+                alert("⚠️ LOGIN FAILED:\n" + msg + "\n\nError Code: " + error.code); 
+                
+                btn.innerText = "Secure Login"; btn.disabled = false;
+                if(window.recaptchaVerifier) { window.recaptchaVerifier.clear(); window.recaptchaVerifier = null; }
+            });
+    };
 
-        // --- STAFF PIN LOGIC ---
-        window.openGatekeeper = function(dept, url) {
-            targetUrl = url;
-            document.getElementById('dept-name').innerText = dept;
-            document.getElementById('pinModal').style.display = 'flex';
-            document.getElementById('pinCode').value = '';
-            document.getElementById('pinCode').focus();
-        };
+    window.verifyOtp = function() {
+        if (!confirmationResult) { showToast("Session expired. Retry.", "error"); closeModal('otpModal'); return; }
+        const code = document.getElementById('otpCode').value; 
+        if (code.length < 6) return showToast("Enter 6 digits.", "error");
+        
+        confirmationResult.confirm(code).then((result) => { 
+            localStorage.setItem('loggedInDoctor', document.getElementById('doc_select').value); 
+            window.location.href = 'doctor.html'; 
+        }).catch((error) => { alert("OTP Error: " + error.message); });
+    };
 
-        window.verifyPin = function() {
-            const entered = document.getElementById('pinCode').value;
-            if(entered === DEPT_PIN) {
-                window.location.href = targetUrl;
-            } else {
-                showToast("❌ Incorrect PIN Access Denied", "error");
-                document.getElementById('pinCode').value = '';
-            }
-        };
-    </script>
+    // --- PIN LOGIC ---
+    window.openGatekeeper = (dept, url) => { targetUrl = url; document.getElementById('dept-name').innerText = dept; document.getElementById('pinModal').style.display = 'flex'; document.getElementById('pinCode').focus(); };
+    window.verifyPin = () => { if(document.getElementById('pinCode').value === DEPT_PIN) window.location.href = targetUrl; else { showToast("Wrong PIN", "error"); document.getElementById('pinCode').value = ''; } };
+</script>
 
     <script>
         const savedTheme = localStorage.getItem('app-theme') || 'light';
